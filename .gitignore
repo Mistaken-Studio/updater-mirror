@@ -1,0 +1,9 @@
+﻿################################################################################
+# Ten plik .gitignore został utworzony automatycznie przez Microsoft(R) Visual Studio.
+################################################################################
+
+/Updater/Updater/obj
+/.vs
+/Updater/.vs/API/v16
+/Updater/Updater/bin
+/Updater/.vs/Updater/v16
