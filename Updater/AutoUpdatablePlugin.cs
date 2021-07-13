@@ -106,13 +106,13 @@ namespace Mistaken.API
                                 Log.Error("AutoUpdate Failed: AutoUpdate URL returned empty page");
                                 return;
                             }
-                            var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(rawResult.Substring(1, rawResult.Length - 2));
-                            if (rawResult.Substring(1, rawResult.Length - 2) == "")
+                            var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic[]>(rawResult);
+                            if (decoded.Length == 0)
                             {
                                 Log.Error("AutoUpdate Failed: No releases found");
                                 return;
                             }
-                            var result = decoded;
+                            var result = decoded[0];
                             if (!force && result.tag_name == CurrentVersion)
                             {
                                 Log.Debug("Up to date", Config.AutoUpdateVerbouseOutput);
