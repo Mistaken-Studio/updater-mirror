@@ -1,19 +1,26 @@
-﻿using Exiled.API.Features;
-using Exiled.API.Interfaces;
+﻿// -----------------------------------------------------------------------
+// <copyright file="AutoUpdatablePlugin.cs" company="Mistaken">
+// Copyright (c) Mistaken. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+using Exiled.API.Features;
 
 namespace Mistaken.API
 {
-    public abstract class AutoUpdatablePlugin<TConfig> : Plugin<TConfig> where TConfig : IAutoUpdatableConfig, new()
+    /// <inheritdoc/>
+    public abstract class AutoUpdatablePlugin<TConfig> : Plugin<TConfig>
+        where TConfig : IAutoUpdatableConfig, new()
     {
+        /// <summary>
+        /// Gets current plugin version.
+        /// </summary>
         public string CurrentVersion { get; private set; }
+
+        /// <inheritdoc/>
         public override void OnEnabled()
         {
             var path = Path.Combine(Paths.Configs, "AutoUpdater");
@@ -21,69 +28,75 @@ namespace Mistaken.API
                 Directory.CreateDirectory(path);
             path = Path.Combine(path, $"{this.Author}.{this.Name}.txt");
             if (!File.Exists(path))
-                AutoUpdate(true);
+                this.AutoUpdate(true);
             else
             {
-                CurrentVersion = File.ReadAllText(path);
-                Exiled.Events.Handlers.Server.RestartingRound += Server_RestartingRound;
-                AutoUpdate(false);
+                this.CurrentVersion = File.ReadAllText(path);
+                Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
+                this.AutoUpdate(false);
             }
+
             base.OnEnabled();
         }
 
+        /// <inheritdoc/>
         public override void OnDisabled()
         {
-            Exiled.Events.Handlers.Server.RestartingRound -= Server_RestartingRound;
+            Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
             base.OnDisabled();
         }
 
         private void AutoUpdate(bool force)
         {
-            if(!force)
+            if (!force)
             {
-                if (File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "AutoUpdater", $"{this.Author}.{this.Name}.txt")) != CurrentVersion)
+                if (File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "AutoUpdater", $"{this.Author}.{this.Name}.txt")) != this.CurrentVersion)
                 {
                     Log.Info("Update is downloaded, server will restart next round");
                     ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                     return;
                 }
             }
-            switch (Config.AutoUpdateType)
+
+            switch (this.Config.AutoUpdateType)
             {
                 case AutoUpdateType.GITHUB:
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            client.Headers.Add($"Authorization: token { Config.AutoUpdateToken}");
+                            client.Headers.Add($"Authorization: token {this.Config.AutoUpdateToken}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
-                            var rawResult = client.DownloadString(Config.AutoUpdateURL);
-                            if (rawResult == "")
+                            var rawResult = client.DownloadString(this.Config.AutoUpdateURL);
+                            if (rawResult == string.Empty)
                             {
                                 Log.Error("AutoUpdate Failed: AutoUpdate URL returned empty page");
                                 return;
                             }
+
                             Console.WriteLine(rawResult);
                             var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(rawResult);
                             var result = decoded;
-                            if (!force && result.tag_name == CurrentVersion)
+                            if (!force && result.tag_name == this.CurrentVersion)
                             {
-                                Log.Debug("Up to date", Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Up to date", this.Config.AutoUpdateVerbouseOutput);
                                 return;
                             }
+
                             foreach (var link in result.assets)
                             {
-                                Log.Debug("Downloading |" + link.url, Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Downloading |" + link.url, this.Config.AutoUpdateVerbouseOutput);
                                 using (var client2 = new WebClient())
                                 {
-                                    client2.Headers.Add($"Authorization: token {Config.AutoUpdateToken}");
+                                    client2.Headers.Add($"Authorization: token {this.Config.AutoUpdateToken}");
                                     client2.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
                                     client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
                                     client2.DownloadFile((string)link.url, Path.Combine(Environment.CurrentDirectory, "AutoUpdater", (string)link.name));
                                 }
                             }
+
                             File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "AutoUpdater", $"{this.Author}.{this.Name}.txt"), (string)result.tag_name);
-                            Exiled.Events.Handlers.Server.RestartingRound -= Server_RestartingRound;
+                            Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                         }
                         catch (System.Exception ex)
@@ -92,39 +105,44 @@ namespace Mistaken.API
                             Log.Error(ex.StackTrace);
                         }
                     }
+
                     break;
                 case AutoUpdateType.GITLAB:
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            client.Headers.Add($"PRIVATE-TOKEN: {Config.AutoUpdateToken}");
+                            client.Headers.Add($"PRIVATE-TOKEN: {this.Config.AutoUpdateToken}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
-                            var rawResult = client.DownloadString(Config.AutoUpdateURL);
-                            if (rawResult == "")
+                            var rawResult = client.DownloadString(this.Config.AutoUpdateURL);
+                            if (rawResult == string.Empty)
                             {
                                 Log.Error("AutoUpdate Failed: AutoUpdate URL returned empty page");
                                 return;
                             }
+
                             var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic[]>(rawResult);
                             if (decoded.Length == 0)
                             {
                                 Log.Error("AutoUpdate Failed: No releases found");
                                 return;
                             }
+
                             var result = decoded[0];
-                            if (!force && result.tag_name == CurrentVersion)
+                            if (!force && result.tag_name == this.CurrentVersion)
                             {
-                                Log.Debug("Up to date", Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Up to date", this.Config.AutoUpdateVerbouseOutput);
                                 return;
                             }
+
                             foreach (var link in result.assets.links)
                             {
-                                Log.Debug("Downloading |" + link.direct_asset_url, Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Downloading |" + link.direct_asset_url, this.Config.AutoUpdateVerbouseOutput);
                                 client.DownloadFile((string)link.direct_asset_url, Path.Combine(Environment.CurrentDirectory, "AutoUpdater", (string)link.name));
                             }
+
                             File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "AutoUpdater", $"{this.Author}.{this.Name}.txt"), (string)result.tag_name);
-                            CurrentVersion = result.tag__name;
+                            this.CurrentVersion = result.tag__name;
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                         }
                         catch (System.Exception ex)
@@ -133,6 +151,7 @@ namespace Mistaken.API
                             Log.Error(ex.StackTrace);
                         }
                     }
+
                     break;
                 case AutoUpdateType.LOGIN:
                     throw new NotImplementedException("How should this work, barwa help?");
@@ -141,28 +160,7 @@ namespace Mistaken.API
 
         private void Server_RestartingRound()
         {
-            AutoUpdate(false);
+            this.AutoUpdate(false);
         }
-    }
-
-    public interface IAutoUpdatableConfig : IConfig
-    {
-        [Description("")]
-        bool AutoUpdateVerbouseOutput { get; set; }
-        [Description("")]
-        string AutoUpdateURL { get; set; }
-        [Description("")]
-        AutoUpdateType AutoUpdateType { get; set; }
-        [Description("")]
-        string AutoUpdateLogin { get; set; }
-        [Description("")]
-        string AutoUpdateToken { get; set; }
-    }
-
-    public enum AutoUpdateType
-    {
-        GITLAB,
-        GITHUB,
-        LOGIN
     }
 }
