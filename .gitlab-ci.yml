@@ -23,7 +23,7 @@ build-plugins:
   tags:
     - Windows
   script:
-    - 'msbuild Updater.sln /p:ReferencePath="$MISTAKEN_REFS;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\Facades\" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\Facades\" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
       - build\Mistaken.Updater.dll
@@ -50,7 +50,7 @@ build-plugins-publish:
   tags:
     - Windows
   script:
-    - 'msbuild Updater.sln /p:ReferencePath="$MISTAKEN_REFS;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\Facades\" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\Facades\" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
       - build\Mistaken.Updater.dll
