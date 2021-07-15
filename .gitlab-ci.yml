@@ -27,7 +27,7 @@ build-plugins:
     - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
-      - build\Mistaken.Updater.dll
+      - Updater\build\Mistaken.Updater.dll
 
 test-plugins:
   needs: [build-plugins]
@@ -55,7 +55,7 @@ build-plugins-publish:
     - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
-      - build\Mistaken.Updater.dll
+      - Updater\build\Mistaken.Updater.dll
 
 test-plugins-publish:
   needs: [build-plugins-publish]
