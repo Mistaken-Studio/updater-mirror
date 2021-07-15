@@ -33,7 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Exiled.API" HintPath="$(MISTAKEN_REFERENCES)\dependencies\Exiled.API.dll" />
+    <Reference Include="Exiled.API" HintPath="$(MISTAKEN_REFERENCES)\Exiled.API.dll" />
     <Reference Include="Exiled.Events" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Events.dll" />
     <Reference Include="Newtonsoft.Json" HintPath="$(MISTAKEN_REFERENCES)\Newtonsoft.Json.dll" />
     <Reference Include="Assembly-CSharp-Publicized.dll" HintPath="$(MISTAKEN_REFERENCES)\Assembly-CSharp-Publicized.dll" />
