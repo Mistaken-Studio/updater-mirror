@@ -91,7 +91,20 @@ namespace Mistaken.API
                                     client2.Headers.Add($"Authorization: token {this.Config.AutoUpdateToken}");
                                     client2.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
                                     client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
-                                    client2.DownloadFile((string)link.url, Path.Combine(Environment.CurrentDirectory, "AutoUpdater", (string)link.name));
+                                    string name = (string)link.name;
+                                    if (name.StartsWith("Dependencie-"))
+                                    {
+                                        name = name.Substring(12);
+                                        string path = Path.Combine(Environment.CurrentDirectory, "AutoUpdater", name);
+                                        client2.DownloadFile((string)link.url, path);
+                                        File.Copy(path, Path.Combine(Paths.Dependencies, name));
+                                    }
+                                    else
+                                    {
+                                        string path = Path.Combine(Environment.CurrentDirectory, "AutoUpdater", name);
+                                        client2.DownloadFile((string)link.url, path);
+                                        File.Copy(path, Path.Combine(Paths.Plugins, name));
+                                    }
                                 }
                             }
 
@@ -138,7 +151,20 @@ namespace Mistaken.API
                             foreach (var link in result.assets.links)
                             {
                                 Log.Debug("Downloading |" + link.direct_asset_url, this.Config.AutoUpdateVerbouseOutput);
-                                client.DownloadFile((string)link.direct_asset_url, Path.Combine(Environment.CurrentDirectory, "AutoUpdater", (string)link.name));
+                                string name = (string)link.name;
+                                if (name.StartsWith("Dependencie-"))
+                                {
+                                    name = name.Substring(12);
+                                    string path = Path.Combine(Environment.CurrentDirectory, "AutoUpdater", name);
+                                    client.DownloadFile((string)link.direct_asset_url, path);
+                                    File.Copy(path, Path.Combine(Paths.Dependencies, name));
+                                }
+                                else
+                                {
+                                    string path = Path.Combine(Environment.CurrentDirectory, "AutoUpdater", name);
+                                    client.DownloadFile((string)link.direct_asset_url, path);
+                                    File.Copy(path, Path.Combine(Paths.Plugins, name));
+                                }
                             }
 
                             File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "AutoUpdater", $"{this.Author}.{this.Name}.txt"), (string)result.tag_name);
@@ -154,7 +180,7 @@ namespace Mistaken.API
 
                     break;
                 case AutoUpdateType.LOGIN:
-                    throw new NotImplementedException("How should this work, barwa help?");
+                    throw new NotImplementedException();
             }
         }
 
