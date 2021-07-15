@@ -27,7 +27,7 @@ build-plugins:
   artifacts:
     paths:
       - build\Mistaken.Updater.dll
-    expose_as: 'Mistaken.Updater.dll'
+    expose_as: Mistaken.Updater.dll
 
 test-plugins:
   needs: [build-plugins]
@@ -55,7 +55,7 @@ build-plugins-publish:
   artifacts:
     paths:
       - build\Mistaken.Updater.dll
-    expose_as: 'Mistaken.Updater.dll'
+    expose_as: Mistaken.Updater.dll
 
 test-plugins-publish:
   needs: [build-plugins-publish]
