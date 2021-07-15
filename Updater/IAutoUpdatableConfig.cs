@@ -22,9 +22,11 @@ namespace Mistaken.API
 
         /// <summary>
         /// Gets or sets url used for auto updating.
+        /// For GitLab it should be releases list.
+        /// For GitHub it should be latest releases link.
         /// </summary>
         [Description("Url used for auto updating")]
-        string AutoUpdateURL { get; set; }
+        string AutoUpdateUrl { get; set; }
 
         /// <summary>
         /// Gets or sets Auto Update type.
