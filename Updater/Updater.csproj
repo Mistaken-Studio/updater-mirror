@@ -33,12 +33,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp-Publicized">
-      <HintPath>..\..\..\..\EXILED\EXILED_REFERENCES\Assembly-CSharp-Publicized.dll</HintPath>
-    </Reference>
-    <Reference Include="Exiled.API" HintPath="$(EXILED_USED)\dependencies\Exiled.API.dll" />
-    <Reference Include="Exiled.Events" HintPath="$(EXILED_USED)\Exiled.Events.dll" />
-    <Reference Include="Newtonsoft.Json" HintPath="$(EXILED_REFERENCES)\Newtonsoft.Json.dll" />
+    <Reference Include="Exiled.API" HintPath="$(MISTAKEN_REFERENCES)\dependencies\Exiled.API.dll" />
+    <Reference Include="Exiled.Events" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Events.dll" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(MISTAKEN_REFERENCES)\Newtonsoft.Json.dll" />
+    <Reference Include="Assembly-CSharp-Publicized.dll" HintPath="$(MISTAKEN_REFERENCES)\Assembly-CSharp-Publicized.dll" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -64,7 +62,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(MISTAKEN_USED)\$(TargetFileName)
-copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_USED)\$(TargetName).xml</PostBuildEvent>
+    <PostBuildEvent>copy $(TargetPath) $(MISTAKEN_REFERENCES)\$(TargetFileName)
+copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_REFERENCES)\$(TargetName).xml</PostBuildEvent>
   </PropertyGroup>
 </Project>
