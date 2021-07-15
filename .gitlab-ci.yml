@@ -93,7 +93,7 @@ publish-plugins:
     - git config user.name "Gitlab-CI"
     - git add Mistaken.Updater.dll
     - git commit -m "Update Mistaken.Updater"
-    - git push -u origin main
+    - git push
     - cd ..
     - rm -r dependencies
     - git remote set-url origin https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/updater.git
