@@ -23,6 +23,7 @@ build-plugins:
   tags:
     - Windows
   script:
+    - 'nuget restore'
     - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
@@ -50,6 +51,7 @@ build-plugins-publish:
   tags:
     - Windows
   script:
+    - 'nuget restore'
     - 'msbuild Updater.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
