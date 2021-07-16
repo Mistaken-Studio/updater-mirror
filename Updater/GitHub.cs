@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AutoUpdatablePlugin.cs" company="Mistaken">
+// <copyright file="GitHub.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -12,7 +12,6 @@ using Newtonsoft.Json;
 
 namespace Mistaken.API
 {
-
     internal class GitHub
     {
         internal class Release

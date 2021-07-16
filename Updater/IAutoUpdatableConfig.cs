@@ -18,7 +18,7 @@ namespace Mistaken.API
         /// Gets or sets a value indicating whether debug should be displayed in console or not.
         /// </summary>
         [Description("If debug should be displayed")]
-        bool AutoUpdateVerbouseOutput { get; set; }
+        bool VerbouseOutput { get; set; }
 
         /// <summary>
         /// Gets or sets url used for auto updating.

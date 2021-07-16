@@ -27,20 +27,20 @@ namespace Mistaken.API
             var path = Path.Combine(Paths.Plugins, "AutoUpdater");
             if (!Directory.Exists(path))
             {
-                Log.Debug($"{path} doesn't exist, creating...", this.Config.AutoUpdateVerbouseOutput);
+                Log.Debug($"{path} doesn't exist, creating...", this.Config.VerbouseOutput);
                 Directory.CreateDirectory(path);
             }
             else
-                Log.Debug($"{path} exist", this.Config.AutoUpdateVerbouseOutput);
+                Log.Debug($"{path} exist", this.Config.VerbouseOutput);
             path = Path.Combine(path, $"{this.Author}.{this.Name}.txt");
             if (!File.Exists(path))
             {
-                Log.Debug($"{path} doesn't exist, forcing auto update", this.Config.AutoUpdateVerbouseOutput);
+                Log.Debug($"{path} doesn't exist, forcing auto update", this.Config.VerbouseOutput);
                 this.AutoUpdate(true);
             }
             else
             {
-                Log.Debug($"{path} exist, checking version", this.Config.AutoUpdateVerbouseOutput);
+                Log.Debug($"{path} exist, checking version", this.Config.VerbouseOutput);
                 this.CurrentVersion = File.ReadAllText(path);
                 Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
                 this.AutoUpdate(false);
@@ -58,10 +58,10 @@ namespace Mistaken.API
 
         private void AutoUpdate(bool force)
         {
-            Log.Debug("Running AutoUpdate...", this.Config.AutoUpdateVerbouseOutput);
+            Log.Debug("Running AutoUpdate...", this.Config.VerbouseOutput);
             if (string.IsNullOrWhiteSpace(this.Config.AutoUpdateUrl))
             {
-                Log.Debug("AutoUpdate is disabled", this.Config.AutoUpdateVerbouseOutput);
+                Log.Debug("AutoUpdate is disabled", this.Config.VerbouseOutput);
                 return;
             }
 
@@ -78,7 +78,7 @@ namespace Mistaken.API
             switch (this.Config.AutoUpdateType)
             {
                 case AutoUpdateType.GITHUB:
-                    Log.Debug($"Checking for update using GITHUB, chekcing latest release", this.Config.AutoUpdateVerbouseOutput);
+                    Log.Debug($"Checking for update using GITHUB, chekcing latest release", this.Config.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
@@ -97,13 +97,13 @@ namespace Mistaken.API
                             var result = decoded;
                             if (!force && result.Tag == this.CurrentVersion)
                             {
-                                Log.Debug("Up to date", this.Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Up to date", this.Config.VerbouseOutput);
                                 return;
                             }
 
                             foreach (var link in result.Assets)
                             {
-                                Log.Debug("Downloading |" + link.Url, this.Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Downloading |" + link.Url, this.Config.VerbouseOutput);
                                 using (var client2 = new WebClient())
                                 {
                                     client2.Headers.Add($"Authorization: token {this.Config.AutoUpdateToken}");
@@ -139,7 +139,7 @@ namespace Mistaken.API
 
                     break;
                 case AutoUpdateType.GITLAB:
-                    Log.Debug($"Checking for update using GITLAB, chekcing for releases", this.Config.AutoUpdateVerbouseOutput);
+                    Log.Debug($"Checking for update using GITLAB, chekcing for releases", this.Config.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
@@ -147,7 +147,7 @@ namespace Mistaken.API
                             if (!string.IsNullOrWhiteSpace(this.Config.AutoUpdateToken))
                                 client.Headers.Add($"PRIVATE-TOKEN: {this.Config.AutoUpdateToken}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                            Log.Debug($"Downloading release list from {this.Config.AutoUpdateUrl}", this.Config.AutoUpdateVerbouseOutput);
+                            Log.Debug($"Downloading release list from {this.Config.AutoUpdateUrl}", this.Config.VerbouseOutput);
                             var rawResult = client.DownloadString(this.Config.AutoUpdateUrl);
                             if (rawResult == string.Empty)
                             {
@@ -165,13 +165,13 @@ namespace Mistaken.API
                             var result = decoded[0];
                             if (!force && result.Tag == this.CurrentVersion)
                             {
-                                Log.Debug("Up to date", this.Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Up to date", this.Config.VerbouseOutput);
                                 return;
                             }
 
                             foreach (var link in result.Assets.Links)
                             {
-                                Log.Debug("Downloading |" + link.Url, this.Config.AutoUpdateVerbouseOutput);
+                                Log.Debug("Downloading |" + link.Url, this.Config.VerbouseOutput);
                                 string name = link.Name;
                                 if (name.StartsWith("Dependencie-"))
                                 {
