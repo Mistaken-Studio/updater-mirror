@@ -37,5 +37,20 @@ namespace Mistaken.API
             [JsonProperty("name")]
             public string Name { get; set; }
         }
+
+        internal class Job
+        {
+            [JsonProperty("id")]
+            public int Id { get; set; }
+
+            [JsonProperty("commit")]
+            public Commit Commit { get; set; }
+        }
+
+        internal class Commit
+        {
+            [JsonProperty("short_id")]
+            public string ShortId { get; set; }
+        }
     }
 }

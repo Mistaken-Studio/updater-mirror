@@ -22,8 +22,13 @@ namespace Mistaken.API
         GITHUB,
 
         /// <summary>
-        /// Download update using GIT, Login and Password
+        /// Download update from GitLab using artifacts
         /// </summary>
-        LOGIN,
+        GITLAB_DEVELOPMENT,
+
+        /// <summary>
+        /// Download update from GitHub using artifacts
+        /// </summary>
+        GITHUB_DEVELOPMENT,
     }
 }

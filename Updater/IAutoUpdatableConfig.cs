@@ -15,15 +15,9 @@ namespace Mistaken.API
     public interface IAutoUpdatableConfig : IConfig
     {
         /// <summary>
-        /// Gets or sets a value indicating whether debug should be displayed in console or not.
-        /// </summary>
-        [Description("If debug should be displayed")]
-        bool VerbouseOutput { get; set; }
-
-        /// <summary>
         /// Gets or sets url used for auto updating.
-        /// For GitLab it should be releases list.
-        /// For GitHub it should be latest releases link.
+        /// For GitLab it should be something like "https://gitlab.example.com/api/v4/projects/1/".
+        /// For GitHub it should be something like "https://api.github.com/repos/example/repo/".
         /// </summary>
         [Description("Url used for auto updating")]
         string AutoUpdateUrl { get; set; }
@@ -31,14 +25,8 @@ namespace Mistaken.API
         /// <summary>
         /// Gets or sets Auto Update type.
         /// </summary>
-        [Description("Auto Update type")]
+        [Description("Auto Update type, can be any of [GITLAB, GITHUB, GITLAB_DEVELOPMENT, GITHUB_DEVELOPMENT]")]
         AutoUpdateType AutoUpdateType { get; set; }
-
-        /// <summary>
-        /// Gets or sets login, used only when <see cref="AutoUpdateType"/> is <see cref="AutoUpdateType.LOGIN"/>.
-        /// </summary>
-        [Description("Login, used only when AutoUpdateType is LOGIN")]
-        string AutoUpdateLogin { get; set; }
 
         /// <summary>
         /// Gets or sets token used for authorization.

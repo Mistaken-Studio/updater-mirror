@@ -31,5 +31,23 @@ namespace Mistaken.API
             [JsonProperty("name")]
             public string Name { get; set; }
         }
+
+        internal class Artifacts
+        {
+            [JsonProperty("artifacts")]
+            public Artifact[] ArtifactsArray { get; set; }
+        }
+
+        internal class Artifact
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; }
+
+            [JsonProperty("archive_download_url")]
+            public string DownloadUrl { get; set; }
+
+            [JsonProperty("node_id")]
+            public string NodeId { get; set; }
+        }
     }
 }
