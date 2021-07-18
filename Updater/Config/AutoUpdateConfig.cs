@@ -6,7 +6,7 @@
 
 using System.ComponentModel;
 
-namespace Mistaken.API
+namespace Mistaken.Updater.Config
 {
     /// <summary>
     /// Struct used for storing auto updater config values.

@@ -13,9 +13,10 @@ using System.Net;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
+using Mistaken.Updater.Config;
 using Newtonsoft.Json;
 
-namespace Mistaken.API.Internal
+namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc/>
     public class AutoUpdaterPluginConfig : IAutoUpdatableConfig

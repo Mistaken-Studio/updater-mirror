@@ -11,8 +11,9 @@ using System.Text;
 using System.Threading.Tasks;
 using CommandSystem;
 using Exiled.API.Interfaces;
+using Mistaken.Updater.Config;
 
-namespace Mistaken.API.Internal
+namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc/>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
@@ -49,7 +50,7 @@ namespace Mistaken.API.Internal
                 return false;
             }
 
-            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false))
+            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false).GetAwaiter().GetResult())
                 Exiled.API.Features.Server.Restart();
 
             response = $"Updated {plugin.Author}.{plugin.Name}";

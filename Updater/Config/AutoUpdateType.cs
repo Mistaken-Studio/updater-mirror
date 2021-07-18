@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Mistaken.API
+namespace Mistaken.Updater.Config
 {
     /// <summary>
     /// Auto Update Type.

@@ -61,8 +61,8 @@
     <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
     <Compile Include="Config\AutoUpdateType.cs" />
     <Compile Include="Internal\AutoUpdateCommand.cs" />
-    <Compile Include="GitHub.cs" />
-    <Compile Include="GitLab.cs" />
+    <Compile Include="API\GitHub.cs" />
+    <Compile Include="API\GitLab.cs" />
     <Compile Include="Config\IAutoUpdatableConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
