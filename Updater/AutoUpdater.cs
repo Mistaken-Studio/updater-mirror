@@ -10,149 +10,126 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
 using Newtonsoft.Json;
 
 namespace Mistaken.API
 {
-    /// <summary>
-    /// Class used to update plugins.
-    /// </summary>
-    public class AutoUpdate
+    /// <inheritdoc/>
+    public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AutoUpdate"/> class.
-        /// </summary>
-        /// <param name="plugin">Plugin with auto update config.</param>
-        /// <param name="verbouseOutput">If <see langword="true"/> then debug will be displayed in console.</param>
-        public AutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool verbouseOutput = false)
+        /// <inheritdoc/>
+        public override void OnEnabled()
         {
-            this.verbouseOutput = verbouseOutput;
-            this.url = plugin.Config.AutoUpdateUrl;
-            this.type = plugin.Config.AutoUpdateType;
-            this.token = plugin.Config.AutoUpdateToken;
-            this.Plugin = plugin;
+            Instance = this;
 
-            Instances.Add(this);
+            Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
+            this.DoAutoUpdates();
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AutoUpdate"/> class.
-        /// </summary>
-        /// <param name="plugin">Plugin.</param>
-        /// <param name="type">Auto Update Type.</param>
-        /// <param name="url">Url used for requesting releases.</param>
-        /// <param name="token">Token used for authorization, if <see langword="null"/> then won't be included in request.</param>
-        /// <param name="verbouseOutput">If <see langword="true"/> then debug will be displayed in console.</param>
-        public AutoUpdate(IPlugin<IConfig> plugin, AutoUpdateType type, string url, string token = null, bool verbouseOutput = false)
-        {
-            this.verbouseOutput = verbouseOutput;
-            this.url = url;
-            this.type = type;
-            this.token = token;
-            this.Plugin = plugin;
-
-            Instances.Add(this);
-        }
-
-        /// <summary>
-        /// Gets current plugin version.
-        /// </summary>
-        public string CurrentVersion { get; private set; }
-
-        /// <summary>
-        /// Enables <see cref="AutoUpdate"/>.
-        /// </summary>
-        public void Enable()
-        {
-            var path = Path.Combine(Paths.Plugins, "AutoUpdater");
-            if (!Directory.Exists(path))
-            {
-                Log.Debug($"{path} doesn't exist, creating...", this.verbouseOutput);
-                Directory.CreateDirectory(path);
-            }
-            else
-                Log.Debug($"{path} exist", this.verbouseOutput);
-            path = Path.Combine(path, $"{this.Plugin.Author}.{this.Plugin.Name}.txt");
-            if (!File.Exists(path))
-            {
-                Log.Debug($"{path} doesn't exist, forcing auto update", this.verbouseOutput);
-                this.DoAutoUpdate(true);
-            }
-            else
-            {
-                Log.Debug($"{path} exist, checking version", this.verbouseOutput);
-                this.CurrentVersion = File.ReadAllText(path);
-                Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
-                this.DoAutoUpdate(false);
-            }
-        }
-
-        /// <summary>
-        /// Disables <see cref="AutoUpdate"/>.
-        /// </summary>
-        public void Disable()
+        /// <inheritdoc/>
+        public override void OnDisabled()
         {
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
         }
 
-        internal static readonly List<AutoUpdate> Instances = new List<AutoUpdate>();
+        public override string Name => "MistakenUpdater";
 
-        internal IPlugin<IConfig> Plugin { get; }
+        public override string Author => "Mistaken Devs";
 
-        internal bool DoAutoUpdate(bool force)
+        public override PluginPriority Priority => PluginPriority.Last;
+
+        public override Version RequiredExiledVersion => new Version(2, 11, 0);
+
+        public override string Prefix => "MUPDATE";
+
+        internal static AutoUpdater Instance;
+
+        internal bool DoAutoUpdates()
         {
-            Log.Debug("Running AutoUpdate...", this.verbouseOutput);
-            if (string.IsNullOrWhiteSpace(this.url))
+            bool changed = false;
+            foreach (var plugin in Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>))
             {
-                Log.Debug("AutoUpdate is disabled", this.verbouseOutput);
+                var path = Path.Combine(Paths.Plugins, "AutoUpdater");
+                if (!Directory.Exists(path))
+                {
+                    Log.Debug($"[{plugin.Name}]{path} doesn't exist, creating...", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Directory.CreateDirectory(path);
+                }
+                else
+                    Log.Debug($"[{plugin.Name}]{path} exist", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                path = Path.Combine(path, $"{plugin.Author}.{plugin.Name}.txt");
+                if (!File.Exists(path))
+                {
+                    Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    if (this.DoAutoUpdate(plugin, true))
+                        changed = true;
+                }
+                else
+                {
+                    Log.Debug($"[{plugin.Name}] {path} exist, checking version", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    if (this.DoAutoUpdate(plugin, false))
+                        changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        internal bool DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
+        {
+            Log.Debug($"[{plugin.Name}] Running AutoUpdate...", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+            if (string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Url))
+            {
+                Log.Debug("AutoUpdate is disabled", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                 return false;
             }
 
             if (!force)
             {
-                if (File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.txt")) != this.CurrentVersion)
+                if (File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt")) != plugin.Version.ToString())
                 {
-                    Log.Info("Update is downloaded, server will restart next round");
+                    Log.Info($"[{plugin.Name}] Update is downloaded, server will restart next round");
                     ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                     return false;
                 }
             }
 
-            switch (this.type)
+            switch (plugin.Config.AutoUpdateConfig.Type)
             {
                 case AutoUpdateType.GITHUB:
-                    Log.Debug($"Checking for update using GITHUB, chekcing latest release", this.verbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            if (!string.IsNullOrWhiteSpace(this.token))
-                                client.Headers.Add($"Authorization: token {this.token}");
+                            if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
+                                client.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
-                            string releaseUrl = this.url + "/releases/latest";
+                            string releaseUrl = plugin.Config.AutoUpdateConfig.Url + "/releases/latest";
                             var rawResult = client.DownloadString(releaseUrl);
                             if (rawResult == string.Empty)
                             {
-                                Log.Error("AutoUpdate Failed: AutoUpdate URL returned empty page");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: AutoUpdate URL returned empty page");
                                 return false;
                             }
 
                             var decoded = Newtonsoft.Json.JsonConvert.DeserializeObject<GitHub.Release>(rawResult);
                             var result = decoded;
-                            if (!force && result.Tag == this.CurrentVersion)
+                            if (!force && result.Tag == plugin.Version.ToString())
                             {
-                                Log.Debug("Up to date", this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 return false;
                             }
 
                             foreach (var link in result.Assets)
                             {
-                                Log.Debug("Downloading |" + link.Url, this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Downloading |" + link.Url, plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 using (var client2 = new WebClient())
                                 {
-                                    client2.Headers.Add($"Authorization: token {this.token}");
+                                    client2.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
                                     client2.Headers.Add(HttpRequestHeader.UserAgent, "PluginUpdater");
                                     client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
                                     string name = link.Name;
@@ -172,7 +149,7 @@ namespace Mistaken.API
                                 }
                             }
 
-                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.txt"), result.Tag);
+                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), result.Tag);
                             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return true;
@@ -186,54 +163,54 @@ namespace Mistaken.API
                     }
 
                 case AutoUpdateType.GITHUB_DEVELOPMENT:
-                    Log.Debug($"Checking for update using GITHUB, chekcing for artifacts", this.verbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing for artifacts", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            if (!string.IsNullOrWhiteSpace(this.token))
-                                client.Headers.Add($"Authorization: token {this.token}");
+                            if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
+                                client.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                            string artifactsUrl = this.url + "/actions/artifacts";
+                            string artifactsUrl = plugin.Config.AutoUpdateConfig.Url + "/actions/artifacts";
                             var rawResult = client.DownloadString(artifactsUrl);
                             if (rawResult == string.Empty)
                             {
-                                Log.Error($"AutoUpdate Failed: {artifactsUrl} returned empty page");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: {artifactsUrl} returned empty page");
                                 return false;
                             }
 
                             var artifacts = Newtonsoft.Json.JsonConvert.DeserializeObject<GitHub.Artifacts>(rawResult);
                             if (artifacts.ArtifactsArray.Length == 0)
                             {
-                                Log.Error("No artifacts found");
+                                Log.Error($"[{plugin.Name}] No artifacts found");
                                 return false;
                             }
 
                             var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
-                            if (!force && artifact.NodeId == this.CurrentVersion)
+                            if (!force && artifact.NodeId == plugin.Version.ToString())
                             {
-                                Log.Debug("Up to date", this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 return false;
                             }
 
-                            Log.Debug("Downloading |" + artifact.DownloadUrl, this.verbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Downloading |" + artifact.DownloadUrl, plugin.Config.AutoUpdateConfig.VerbouseOutput);
                             using (var client2 = new WebClient())
                             {
-                                client2.Headers.Add($"Authorization: token {this.token}");
+                                client2.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
                                 client2.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                                 client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
-                                string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.artifacts.zip");
+                                string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
                                 client2.DownloadFile(artifact.DownloadUrl, path);
 
-                                string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.artifacts.extracted");
+                                string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
                                 ZipFile.ExtractToDirectory(path, extractedPath);
                                 while (true)
                                 {
-                                    Log.Debug($"Scanning {extractedPath} for files", this.verbouseOutput);
+                                    Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                     var files = Directory.GetFiles(extractedPath, "*.dll");
                                     if (files.Length != 0)
                                     {
-                                        Log.Debug($"Found files in {extractedPath}", this.verbouseOutput);
+                                        Log.Debug($"[{plugin.Name}] Found files in {extractedPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                         foreach (var file in files)
                                         {
                                             string name = Path.GetFileName(file);
@@ -246,7 +223,7 @@ namespace Mistaken.API
                                             else
                                                 targetPath = Path.Combine(Paths.Plugins, name);
 
-                                            Log.Debug($"Copping {file} to {targetPath}", this.verbouseOutput);
+                                            Log.Debug($"[{plugin.Name}] Copping {file} to {targetPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                             File.Copy(file, targetPath, true);
                                         }
 
@@ -256,7 +233,7 @@ namespace Mistaken.API
                                     var directories = Directory.GetDirectories(extractedPath);
                                     if (directories.Length == 0)
                                     {
-                                        Log.Error($"Artifact is empty");
+                                        Log.Error($"[{plugin.Name}] Artifact is empty");
                                         return false;
                                     }
 
@@ -264,54 +241,54 @@ namespace Mistaken.API
                                 }
                             }
 
-                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.txt"), artifact.NodeId);
+                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), artifact.NodeId);
                             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return true;
                         }
                         catch (System.Exception ex)
                         {
-                            Log.Error($"AutoUpdate Failed: {ex.Message}");
+                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                             Log.Error(ex.StackTrace);
                             return false;
                         }
                     }
 
                 case AutoUpdateType.GITLAB:
-                    Log.Debug($"Checking for update using GITLAB, chekcing for releases", this.verbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for releases", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            if (!string.IsNullOrWhiteSpace(this.token))
-                                client.Headers.Add($"PRIVATE-TOKEN: {this.token}");
+                            if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
+                                client.Headers.Add($"PRIVATE-TOKEN: {plugin.Config.AutoUpdateConfig.Token}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                            string releasesLink = this.url + "/releases";
-                            Log.Debug($"Downloading release list from {releasesLink}", this.verbouseOutput);
+                            string releasesLink = plugin.Config.AutoUpdateConfig.Url + "/releases";
+                            Log.Debug($"[{plugin.Name}] Downloading release list from {releasesLink}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                             var rawResult = client.DownloadString(releasesLink);
                             if (rawResult == string.Empty)
                             {
-                                Log.Error($"AutoUpdate Failed: {releasesLink} returned empty page");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: {releasesLink} returned empty page");
                                 return false;
                             }
 
                             var releases = Newtonsoft.Json.JsonConvert.DeserializeObject<GitLab.Release[]>(rawResult);
                             if (releases.Length == 0)
                             {
-                                Log.Error("AutoUpdate Failed: No releases found");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: No releases found");
                                 return false;
                             }
 
                             var release = releases[0];
-                            if (!force && release.Tag == this.CurrentVersion)
+                            if (!force && release.Tag == plugin.Version.ToString())
                             {
-                                Log.Debug("Up to date", this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 return false;
                             }
 
                             foreach (var link in release.Assets.Links)
                             {
-                                Log.Debug("Downloading |" + link.Url, this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Downloading |" + link.Url, plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 string name = link.Name;
                                 if (name.StartsWith("Dependencie-"))
                                 {
@@ -328,64 +305,63 @@ namespace Mistaken.API
                                 }
                             }
 
-                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.txt"), release.Tag);
-                            this.CurrentVersion = release.Tag;
+                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), release.Tag);
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return true;
                         }
                         catch (System.Exception ex)
                         {
-                            Log.Error($"AutoUpdate Failed: {ex.Message}");
+                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                             Log.Error(ex.StackTrace);
                             return false;
                         }
                     }
 
                 case AutoUpdateType.GITLAB_DEVELOPMENT:
-                    Log.Debug($"Checking for update using GITLAB, chekcing for artifacts", this.verbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for artifacts", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                     using (var client = new WebClient())
                     {
                         try
                         {
-                            string jobsUrl = this.url + "/jobs?scope=success";
-                            if (!string.IsNullOrWhiteSpace(this.token))
-                                client.Headers.Add($"PRIVATE-TOKEN: {this.token}");
+                            string jobsUrl = plugin.Config.AutoUpdateConfig.Url + "/jobs?scope=success";
+                            if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
+                                client.Headers.Add($"PRIVATE-TOKEN: {plugin.Config.AutoUpdateConfig.Token}");
                             client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                            Log.Debug($"Downloading job list from {jobsUrl}", this.verbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Downloading job list from {jobsUrl}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                             var rawResult = client.DownloadString(jobsUrl);
                             if (rawResult == string.Empty)
                             {
-                                Log.Error($"AutoUpdate Failed: {jobsUrl} returned empty page");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: {jobsUrl} returned empty page");
                                 return false;
                             }
 
                             var jobs = Newtonsoft.Json.JsonConvert.DeserializeObject<GitLab.Job[]>(rawResult);
                             if (jobs.Length == 0)
                             {
-                                Log.Error("AutoUpdate Failed: No jobs found");
+                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
                                 return false;
                             }
 
                             var job = jobs[0];
-                            if (!force && job.Commit.ShortId == this.CurrentVersion)
+                            if (!force && job.Commit.ShortId == plugin.Version.ToString())
                             {
-                                Log.Debug("Up to date", this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 return false;
                             }
 
-                            string artifactUrl = this.url + $"/jobs/{job.Id}/artifacts";
-                            Log.Debug("Downloading |" + artifactUrl, this.verbouseOutput);
-                            string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.artifacts.zip");
+                            string artifactUrl = plugin.Config.AutoUpdateConfig.Url + $"/jobs/{job.Id}/artifacts";
+                            Log.Debug($"[{plugin.Name}] Downloading |" + artifactUrl, plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
                             client.DownloadFile(artifactUrl, path);
-                            string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.artifacts.extracted");
+                            string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
                             ZipFile.ExtractToDirectory(path, extractedPath);
                             while (true)
                             {
-                                Log.Debug($"Scanning {extractedPath} for files", this.verbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                 var files = Directory.GetFiles(extractedPath, "*.dll");
                                 if (files.Length != 0)
                                 {
-                                    Log.Debug($"Found files in {extractedPath}", this.verbouseOutput);
+                                    Log.Debug($"[{plugin.Name}] Found files in {extractedPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                     foreach (var file in files)
                                     {
                                         string name = Path.GetFileName(file);
@@ -398,7 +374,7 @@ namespace Mistaken.API
                                         else
                                             targetPath = Path.Combine(Paths.Plugins, name);
 
-                                        Log.Debug($"Copping {file} to {targetPath}", this.verbouseOutput);
+                                        Log.Debug($"[{plugin.Name}] Copping {file} to {targetPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
                                         File.Copy(file, targetPath, true);
                                     }
 
@@ -408,15 +384,14 @@ namespace Mistaken.API
                                 var directories = Directory.GetDirectories(extractedPath);
                                 if (directories.Length == 0)
                                 {
-                                    Log.Error($"Artifact is empty");
+                                    Log.Error($"[{plugin.Name}] Artifact is empty");
                                     return false;
                                 }
 
                                 extractedPath = directories[0];
                             }
 
-                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{this.Plugin.Author}.{this.Plugin.Name}.txt"), job.Commit.ShortId);
-                            this.CurrentVersion = job.Commit.ShortId;
+                            File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), job.Commit.ShortId);
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return true;
                         }
@@ -429,18 +404,20 @@ namespace Mistaken.API
                     }
 
                 default:
-                    throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({this.type})");
+                    throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({plugin.Config.AutoUpdateConfig.Type})");
             }
         }
 
-        private readonly bool verbouseOutput;
-        private readonly string url;
-        private readonly string token;
-        private readonly AutoUpdateType type;
-
         private void Server_RestartingRound()
         {
-            this.DoAutoUpdate(false);
+            this.DoAutoUpdates();
         }
+    }
+
+    public class AutoUpdaterPluginConfig : IAutoUpdatableConfig
+    {
+        public AutoUpdateConfig AutoUpdateConfig { get; set; }
+
+        public bool IsEnabled { get; set; }
     }
 }

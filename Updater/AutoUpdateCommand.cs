@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CommandSystem;
+using Exiled.API.Interfaces;
 
 namespace Mistaken.API
 {
@@ -40,7 +41,7 @@ namespace Mistaken.API
 
             string pluginName = arguments.Array[0].ToLower();
 
-            var plugin = AutoUpdate.Instances.Find(x => x.Plugin.Name.ToLower() == pluginName || x.Plugin.Prefix.ToLower() == pluginName);
+            var plugin = Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>).FirstOrDefault(x => x.Name.ToLower() == pluginName || x.Prefix.ToLower() == pluginName);
 
             if (plugin == null)
             {
@@ -48,10 +49,10 @@ namespace Mistaken.API
                 return false;
             }
 
-            if (plugin.DoAutoUpdate(false))
+            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false))
                 Exiled.API.Features.Server.Restart();
 
-            response = $"Updated {plugin.Plugin.Author}.{plugin.Plugin.Name} to version {plugin.CurrentVersion}";
+            response = $"Updated {plugin.Author}.{plugin.Name}";
             return true;
         }
     }

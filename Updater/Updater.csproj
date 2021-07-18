@@ -36,6 +36,7 @@
   <ItemGroup>
     <Reference Include="Exiled.API" HintPath="$(MISTAKEN_REFERENCES)\Exiled.API.dll" />
     <Reference Include="Exiled.Events" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Events.dll" />
+    <Reference Include="Exiled.Loader" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Loader.dll" />
     <Reference Include="Newtonsoft.Json" HintPath="$(MISTAKEN_REFERENCES)\Newtonsoft.Json.dll" />
     <Reference Include="CommandSystem.Core" HintPath="$(MISTAKEN_REFERENCES)\CommandSystem.Core.dll" />
     <Reference Include="Assembly-CSharp-Publicized.dll" HintPath="$(MISTAKEN_REFERENCES)\Assembly-CSharp-Publicized.dll" />
@@ -55,7 +56,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutoUpdate.cs" />
+    <Compile Include="AutoUpdater.cs" />
     <Compile Include="AutoUpdateType.cs" />
     <Compile Include="AutoUpdateCommand.cs" />
     <Compile Include="GitHub.cs" />
