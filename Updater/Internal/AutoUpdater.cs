@@ -24,7 +24,7 @@ namespace Mistaken.Updater.Internal
     public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>
     {
         /// <inheritdoc/>
-        public override string Name => "MistakenUpdater";
+        public override string Name => "Updater";
 
         /// <inheritdoc/>
         public override string Author => "Mistaken Devs";
@@ -36,7 +36,7 @@ namespace Mistaken.Updater.Internal
         public override Version RequiredExiledVersion => new Version(2, 11, 0);
 
         /// <inheritdoc/>
-        public override string Prefix => "MUPDATE";
+        public override string Prefix => "MUPDATER";
 
         /// <inheritdoc/>
         public override void OnEnabled()
