@@ -22,9 +22,15 @@ namespace Mistaken.Updater.Internal
     public class AutoUpdaterPluginConfig : IAutoUpdatableConfig
     {
         /// <inheritdoc/>
-        public AutoUpdateConfig AutoUpdateConfig { get; set; }
+        public Dictionary<string, string> AutoUpdateConfig { get; set; } = new Dictionary<string, string>()
+        {
+            { "Url", null },
+            { "Token", null },
+            { "Type", "GITHUB" },
+            { "VerbouseOutput", "false" },
+        };
 
         /// <inheritdoc/>
-        public bool IsEnabled { get; set; }
+        public bool IsEnabled { get; set; } = true;
     }
 }

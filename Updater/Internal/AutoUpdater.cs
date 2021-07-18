@@ -24,7 +24,7 @@ namespace Mistaken.Updater.Internal
     public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>
     {
         /// <inheritdoc/>
-        public override string Name => "MistakenUpdater";
+        public override string Name => "Updater";
 
         /// <inheritdoc/>
         public override string Author => "Mistaken Devs";
@@ -36,21 +36,23 @@ namespace Mistaken.Updater.Internal
         public override Version RequiredExiledVersion => new Version(2, 11, 0);
 
         /// <inheritdoc/>
-        public override string Prefix => "MUPDATE";
+        public override string Prefix => "MUPDATER";
 
         /// <inheritdoc/>
         public override void OnEnabled()
         {
             Instance = this;
 
+            MyConfig = new AutoUpdateConfig(this.Config.AutoUpdateConfig);
+
             var path = Path.Combine(Paths.Plugins, "AutoUpdater");
             if (!Directory.Exists(path))
             {
-                Log.Debug($"{path} doesn't exist, creating...", this.Config.AutoUpdateConfig.VerbouseOutput);
+                Log.Debug($"{path} doesn't exist, creating...", MyConfig.VerbouseOutput);
                 Directory.CreateDirectory(path);
             }
             else
-                Log.Debug($"{path} exist", this.Config.AutoUpdateConfig.VerbouseOutput);
+                Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
             Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
             this.DoAutoUpdates();
@@ -62,6 +64,8 @@ namespace Mistaken.Updater.Internal
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
         }
 
+        internal static AutoUpdateConfig MyConfig { get; private set; }
+
         internal static AutoUpdater Instance { get; private set; }
 
         internal bool DoAutoUpdates()
@@ -69,16 +73,17 @@ namespace Mistaken.Updater.Internal
             bool changed = false;
             foreach (var plugin in Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>))
             {
+                var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
                 string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt");
                 if (!File.Exists(path))
                 {
-                    Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", config.VerbouseOutput);
                     if (this.DoAutoUpdate(plugin, true).GetAwaiter().GetResult())
                         changed = true;
                 }
                 else
                 {
-                    Log.Debug($"[{plugin.Name}] {path} exist, checking version", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] {path} exist, checking version", config.VerbouseOutput);
                     if (this.DoAutoUpdate(plugin, false).GetAwaiter().GetResult())
                         changed = true;
                 }
@@ -89,10 +94,11 @@ namespace Mistaken.Updater.Internal
 
         internal async Task<bool> DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
         {
-            Log.Debug($"[{plugin.Name}] Running AutoUpdate...", plugin.Config.AutoUpdateConfig.VerbouseOutput);
-            if (string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Url))
+            var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
+            Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
+            if (string.IsNullOrWhiteSpace(config.Url))
             {
-                Log.Debug("AutoUpdate is disabled", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                Log.Debug("AutoUpdate is disabled", config.VerbouseOutput);
                 return false;
             }
 
@@ -108,22 +114,22 @@ namespace Mistaken.Updater.Internal
 
             string newVersion;
 
-            switch (plugin.Config.AutoUpdateConfig.Type)
+            switch (config.Type)
             {
                 case AutoUpdateType.GITHUB:
-                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", config.VerbouseOutput);
                     try
                     {
-                        var release = await GitHub.Release.DownloadLatest(plugin);
+                        var release = await GitHub.Release.DownloadLatest(plugin, config);
 
                         if (!force && release.Tag == plugin.Version.ToString())
                         {
-                            Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
                         }
 
                         foreach (var asset in release.Assets)
-                            await asset.DownloadAsset(plugin);
+                            await asset.DownloadAsset(plugin, config);
 
                         newVersion = release.Tag;
                     }
@@ -137,10 +143,10 @@ namespace Mistaken.Updater.Internal
                     break;
 
                 case AutoUpdateType.GITHUB_DEVELOPMENT:
-                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing for artifacts", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing for artifacts", config.VerbouseOutput);
                     try
                     {
-                        var artifacts = await GitHub.Artifacts.Download(plugin);
+                        var artifacts = await GitHub.Artifacts.Download(plugin, config);
                         if (artifacts.ArtifactsArray.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] No artifacts found");
@@ -150,11 +156,11 @@ namespace Mistaken.Updater.Internal
                         var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
                         if (!force && artifact.NodeId == plugin.Version.ToString())
                         {
-                            Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
                         }
 
-                        await artifact.Download(plugin);
+                        await artifact.Download(plugin, config);
 
                         newVersion = artifact.NodeId;
                     }
@@ -168,10 +174,10 @@ namespace Mistaken.Updater.Internal
                     break;
 
                 case AutoUpdateType.GITLAB:
-                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for releases", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for releases", config.VerbouseOutput);
                     try
                     {
-                        var releases = await GitLab.Release.Download(plugin);
+                        var releases = await GitLab.Release.Download(plugin, config);
                         if (releases.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No releases found");
@@ -181,12 +187,12 @@ namespace Mistaken.Updater.Internal
                         var release = releases[0];
                         if (!force && release.Tag == plugin.Version.ToString())
                         {
-                            Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
                         }
 
                         foreach (var link in release.Assets.Links)
-                            await link.Download(plugin);
+                            await link.Download(plugin, config);
 
                         newVersion = release.Tag;
                     }
@@ -200,10 +206,10 @@ namespace Mistaken.Updater.Internal
                     break;
 
                 case AutoUpdateType.GITLAB_DEVELOPMENT:
-                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for artifacts", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for artifacts", config.VerbouseOutput);
                     try
                     {
-                        var jobs = await GitLab.Job.Download(plugin);
+                        var jobs = await GitLab.Job.Download(plugin, config);
                         if (jobs.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
@@ -213,11 +219,11 @@ namespace Mistaken.Updater.Internal
                         var job = jobs[0];
                         if (!force && job.Commit.ShortId == plugin.Version.ToString())
                         {
-                            Log.Debug($"[{plugin.Name}] Up to date", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
                         }
 
-                        await job.DownloadArtifacts(plugin);
+                        await job.DownloadArtifacts(plugin, config);
 
                         newVersion = job.Commit.ShortId;
                     }
@@ -231,7 +237,7 @@ namespace Mistaken.Updater.Internal
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({plugin.Config.AutoUpdateConfig.Type})");
+                    throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({config.Type})");
             }
 
             File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), newVersion);
