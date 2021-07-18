@@ -25,8 +25,10 @@ build-plugins:
   script:
     - git clone https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/dependencies.git
     - 'nuget restore'
-    - $deps = (Get-Item .).FullName + "\dependencies"
-    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$deps" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $origdeps = $env:MISTAKEN_REFERENCES
+    - $env:MISTAKEN_REFERENCES = (Get-Item .).FullName + "\dependencies"
+    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $env:MISTAKEN_REFERENCES = $origdeps
   artifacts:
     paths:
       - $CI_PROJECT_NAME\build\$DLL_NAME
@@ -55,8 +57,10 @@ build-plugins-publish:
   script:
     - git clone https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/dependencies.git
     - 'nuget restore'
-    - $deps = (Get-Item .).FullName + "\dependencies"
-    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$deps" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $origdeps = $env:MISTAKEN_REFERENCES
+    - $env:MISTAKEN_REFERENCES = (Get-Item .).FullName + "\dependencies"
+    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $env:MISTAKEN_REFERENCES = $origdeps
   artifacts:
     paths:
       - $CI_PROJECT_NAME\build\$DLL_NAME
