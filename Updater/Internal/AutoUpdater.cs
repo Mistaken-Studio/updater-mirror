@@ -104,9 +104,10 @@ namespace Mistaken.Updater.Internal
 
             if (!force)
             {
-                if (File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt")) != plugin.Version.ToString())
+                string fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
+                if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
                 {
-                    Log.Info($"[{plugin.Name}] Update is downloaded, server will restart next round");
+                    Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
                     ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                     return false;
                 }
