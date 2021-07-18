@@ -119,6 +119,9 @@ namespace Mistaken.Updater.API
             {
                 using (var client = new WebClient())
                 {
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client.Headers.Add($"PRIVATE-TOKEN: {config.Token}");
+                    client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     string artifactUrl = config.Url + $"/jobs/{this.Id}/artifacts";
                     Log.Debug($"[{plugin.Name}] Downloading |" + artifactUrl, config.VerbouseOutput);
                     string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
