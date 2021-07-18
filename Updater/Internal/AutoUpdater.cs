@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AutoUpdate.cs" company="Mistaken">
+// <copyright file="AutoUpdater.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -15,11 +15,26 @@ using Exiled.API.Features;
 using Exiled.API.Interfaces;
 using Newtonsoft.Json;
 
-namespace Mistaken.API
+namespace Mistaken.API.Internal
 {
     /// <inheritdoc/>
     public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>
     {
+        /// <inheritdoc/>
+        public override string Name => "MistakenUpdater";
+
+        /// <inheritdoc/>
+        public override string Author => "Mistaken Devs";
+
+        /// <inheritdoc/>
+        public override PluginPriority Priority => PluginPriority.Last;
+
+        /// <inheritdoc/>
+        public override Version RequiredExiledVersion => new Version(2, 11, 0);
+
+        /// <inheritdoc/>
+        public override string Prefix => "MUPDATE";
+
         /// <inheritdoc/>
         public override void OnEnabled()
         {
@@ -35,17 +50,7 @@ namespace Mistaken.API
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
         }
 
-        public override string Name => "MistakenUpdater";
-
-        public override string Author => "Mistaken Devs";
-
-        public override PluginPriority Priority => PluginPriority.Last;
-
-        public override Version RequiredExiledVersion => new Version(2, 11, 0);
-
-        public override string Prefix => "MUPDATE";
-
-        internal static AutoUpdater Instance;
+        internal static AutoUpdater Instance { get; private set; }
 
         internal bool DoAutoUpdates()
         {
@@ -412,12 +417,5 @@ namespace Mistaken.API
         {
             this.DoAutoUpdates();
         }
-    }
-
-    public class AutoUpdaterPluginConfig : IAutoUpdatableConfig
-    {
-        public AutoUpdateConfig AutoUpdateConfig { get; set; }
-
-        public bool IsEnabled { get; set; }
     }
 }

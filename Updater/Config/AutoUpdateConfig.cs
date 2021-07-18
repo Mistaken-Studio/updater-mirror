@@ -1,23 +1,16 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="IAutoUpdatableConfig.cs" company="Mistaken">
+// <copyright file="AutoUpdateConfig.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
 using System.ComponentModel;
-using Exiled.API.Interfaces;
 
 namespace Mistaken.API
 {
     /// <summary>
-    /// <see cref="IConfig"/> but with fields requied for AutoUpdates.
+    /// Struct used for storing auto updater config values.
     /// </summary>
-    public interface IAutoUpdatableConfig : IConfig
-    {
-        [Description("Auto Update Settings")]
-        AutoUpdateConfig AutoUpdateConfig { get; set; }
-    }
-
     public struct AutoUpdateConfig
     {
         /// <summary>

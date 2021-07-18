@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using CommandSystem;
 using Exiled.API.Interfaces;
 
-namespace Mistaken.API
+namespace Mistaken.API.Internal
 {
     /// <inheritdoc/>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
