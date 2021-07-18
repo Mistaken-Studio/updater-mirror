@@ -105,11 +105,15 @@ namespace Mistaken.Updater.Internal
             if (!force)
             {
                 string fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
-                if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
+                if (!fileVersion.StartsWith("Dev: "))
                 {
-                    Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
-                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                    return false;
+                    Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
+                    if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
+                    {
+                        Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
+                        ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                        return false;
+                    }
                 }
             }
 
@@ -163,7 +167,7 @@ namespace Mistaken.Updater.Internal
 
                         artifact.Download(plugin, config);
 
-                        newVersion = artifact.NodeId;
+                        newVersion = "Dev: " + artifact.NodeId;
                     }
                     catch (System.Exception ex)
                     {
@@ -226,7 +230,7 @@ namespace Mistaken.Updater.Internal
 
                         job.DownloadArtifacts(plugin, config);
 
-                        newVersion = job.Commit.ShortId;
+                        newVersion = "Dev: " + job.Commit.ShortId;
                     }
                     catch (System.Exception ex)
                     {
