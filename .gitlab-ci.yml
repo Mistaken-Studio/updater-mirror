@@ -23,8 +23,10 @@ build-plugins:
   tags:
     - Windows
   script:
+    - git clone https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/dependencies.git
     - 'nuget restore'
-    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $deps = (Get-Item .).FullName + "\dependencies"
+    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$deps" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
       - $CI_PROJECT_NAME\build\$DLL_NAME
@@ -51,8 +53,10 @@ build-plugins-publish:
   tags:
     - Windows
   script:
+    - git clone https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/dependencies.git
     - 'nuget restore'
-    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$env:MISTAKEN_REFERENCES" /p:CompanyName=Mistaken /p:OutputPath="build"'
+    - $deps = (Get-Item .).FullName + "\dependencies"
+    - 'msbuild $CI_PROJECT_NAME.sln /p:ReferencePath="$deps" /p:CompanyName=Mistaken /p:OutputPath="build"'
   artifacts:
     paths:
       - $CI_PROJECT_NAME\build\$DLL_NAME
@@ -95,7 +99,7 @@ publish-plugins:
     - git commit -m "Update $DLL_NAME"
     - git push
     - cd ..
-    - rm -r dependencies
+    - rm -r -force dependencies
     - git remote set-url origin https://oauth2:$GIT_KEY@git.mistaken.pl/scp-sl/$CI_PROJECT_NAME.git
     - git config commit.gpgsign false
     - git config user.email "ci@git.mistaken.pl"
