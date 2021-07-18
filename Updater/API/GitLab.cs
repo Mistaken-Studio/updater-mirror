@@ -20,7 +20,7 @@ namespace Mistaken.Updater.API
     {
         internal class Release
         {
-            public static async Task<Release[]> Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            public static Release[] Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
@@ -29,7 +29,7 @@ namespace Mistaken.Updater.API
                     client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     string releasesLink = config.Url + "/releases";
                     Log.Debug($"[{plugin.Name}] Downloading release list from {releasesLink}", config.VerbouseOutput);
-                    var rawResult = await client.DownloadStringTaskAsync(releasesLink);
+                    var rawResult = client.DownloadString(releasesLink);
                     if (rawResult == string.Empty)
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {releasesLink} returned empty page");
@@ -61,7 +61,7 @@ namespace Mistaken.Updater.API
             [JsonProperty("name")]
             public string Name { get; set; }
 
-            public async Task Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            public void Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
@@ -74,13 +74,13 @@ namespace Mistaken.Updater.API
                     {
                         name = name.Substring(12);
                         string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                        await client.DownloadFileTaskAsync(this.Url, path);
+                        client.DownloadFile(this.Url, path);
                         File.Copy(path, Path.Combine(Paths.Dependencies, name), true);
                     }
                     else
                     {
                         string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                        await client.DownloadFileTaskAsync(this.Url, path);
+                        client.DownloadFile(this.Url, path);
                         File.Copy(path, Path.Combine(Paths.Plugins, name), true);
                     }
                 }
@@ -89,7 +89,7 @@ namespace Mistaken.Updater.API
 
         internal class Job
         {
-            public static async Task<Job[]> Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            public static Job[] Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
@@ -98,7 +98,7 @@ namespace Mistaken.Updater.API
                         client.Headers.Add($"PRIVATE-TOKEN: {config.Token}");
                     client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     Log.Debug($"[{plugin.Name}] Downloading job list from {jobsUrl}", config.VerbouseOutput);
-                    var rawResult = await client.DownloadStringTaskAsync(jobsUrl);
+                    var rawResult = client.DownloadString(jobsUrl);
                     if (rawResult == string.Empty)
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {jobsUrl} returned empty page");
@@ -115,14 +115,14 @@ namespace Mistaken.Updater.API
             [JsonProperty("commit")]
             public Commit Commit { get; set; }
 
-            public async Task DownloadArtifacts(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            public void DownloadArtifacts(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
                     string artifactUrl = config.Url + $"/jobs/{this.Id}/artifacts";
                     Log.Debug($"[{plugin.Name}] Downloading |" + artifactUrl, config.VerbouseOutput);
                     string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
-                    await client.DownloadFileTaskAsync(artifactUrl, path);
+                    client.DownloadFile(artifactUrl, path);
                     string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
                     ZipFile.ExtractToDirectory(path, extractedPath);
                     while (true)

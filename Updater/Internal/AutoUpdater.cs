@@ -78,13 +78,13 @@ namespace Mistaken.Updater.Internal
                 if (!File.Exists(path))
                 {
                     Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, true).GetAwaiter().GetResult())
+                    if (this.DoAutoUpdate(plugin, true))
                         changed = true;
                 }
                 else
                 {
                     Log.Debug($"[{plugin.Name}] {path} exist, checking version", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, false).GetAwaiter().GetResult())
+                    if (this.DoAutoUpdate(plugin, false))
                         changed = true;
                 }
             }
@@ -92,7 +92,7 @@ namespace Mistaken.Updater.Internal
             return changed;
         }
 
-        internal async Task<bool> DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
+        internal bool DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
         {
             var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
             Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
@@ -120,7 +120,7 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", config.VerbouseOutput);
                     try
                     {
-                        var release = await GitHub.Release.DownloadLatest(plugin, config);
+                        var release = GitHub.Release.DownloadLatest(plugin, config);
 
                         if (!force && release.Tag == plugin.Version.ToString())
                         {
@@ -129,7 +129,7 @@ namespace Mistaken.Updater.Internal
                         }
 
                         foreach (var asset in release.Assets)
-                            await asset.DownloadAsset(plugin, config);
+                            asset.DownloadAsset(plugin, config);
 
                         newVersion = release.Tag;
                     }
@@ -146,7 +146,7 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing for artifacts", config.VerbouseOutput);
                     try
                     {
-                        var artifacts = await GitHub.Artifacts.Download(plugin, config);
+                        var artifacts = GitHub.Artifacts.Download(plugin, config);
                         if (artifacts.ArtifactsArray.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] No artifacts found");
@@ -160,7 +160,7 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
 
-                        await artifact.Download(plugin, config);
+                        artifact.Download(plugin, config);
 
                         newVersion = artifact.NodeId;
                     }
@@ -177,7 +177,7 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for releases", config.VerbouseOutput);
                     try
                     {
-                        var releases = await GitLab.Release.Download(plugin, config);
+                        var releases = GitLab.Release.Download(plugin, config);
                         if (releases.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No releases found");
@@ -192,7 +192,7 @@ namespace Mistaken.Updater.Internal
                         }
 
                         foreach (var link in release.Assets.Links)
-                            await link.Download(plugin, config);
+                            link.Download(plugin, config);
 
                         newVersion = release.Tag;
                     }
@@ -209,7 +209,7 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for artifacts", config.VerbouseOutput);
                     try
                     {
-                        var jobs = await GitLab.Job.Download(plugin, config);
+                        var jobs = GitLab.Job.Download(plugin, config);
                         if (jobs.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
@@ -223,7 +223,7 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
 
-                        await job.DownloadArtifacts(plugin, config);
+                        job.DownloadArtifacts(plugin, config);
 
                         newVersion = job.Commit.ShortId;
                     }

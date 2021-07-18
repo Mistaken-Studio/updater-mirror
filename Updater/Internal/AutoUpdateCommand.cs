@@ -50,7 +50,7 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
-            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false).GetAwaiter().GetResult())
+            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false))
                 Exiled.API.Features.Server.Restart();
 
             response = $"Updated {plugin.Author}.{plugin.Name}";
