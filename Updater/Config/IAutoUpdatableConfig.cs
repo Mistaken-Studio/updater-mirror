@@ -4,6 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.ComponentModel;
 using Exiled.API.Interfaces;
 
@@ -18,6 +19,8 @@ namespace Mistaken.Updater.Config
         /// Gets or sets config values used by AutoUpdater.
         /// </summary>
         [Description("Auto Update Settings")]
-        AutoUpdateConfig AutoUpdateConfig { get; set; }
+
+        // AutoUpdateConfig AutoUpdateConfig { get; set; }
+        Dictionary<string, string> AutoUpdateConfig { get; set; }
     }
 }

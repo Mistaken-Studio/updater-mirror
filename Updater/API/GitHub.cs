@@ -20,14 +20,14 @@ namespace Mistaken.Updater.API
     {
         internal class Release
         {
-            public static async Task<Release> DownloadLatest(IPlugin<IAutoUpdatableConfig> plugin)
+            public static async Task<Release> DownloadLatest(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
-                    if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
-                        client.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client.Headers.Add($"Authorization: token {config.Token}");
                     client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    string releaseUrl = plugin.Config.AutoUpdateConfig.Url + "/releases/latest";
+                    string releaseUrl = config.Url + "/releases/latest";
                     var rawResult = await client.DownloadStringTaskAsync(releaseUrl);
                     if (rawResult == string.Empty)
                     {
@@ -54,13 +54,13 @@ namespace Mistaken.Updater.API
             [JsonProperty("name")]
             public string Name { get; set; }
 
-            public async Task DownloadAsset(IPlugin<IAutoUpdatableConfig> plugin)
+            public async Task DownloadAsset(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
-                Log.Debug($"[{plugin.Name}] Downloading |" + this.Url, plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                Log.Debug($"[{plugin.Name}] Downloading |" + this.Url, config.VerbouseOutput);
                 using (var client2 = new WebClient())
                 {
-                    if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
-                        client2.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client2.Headers.Add($"Authorization: token {config.Token}");
                     client2.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
                     string name = this.Name;
@@ -83,14 +83,14 @@ namespace Mistaken.Updater.API
 
         internal class Artifacts
         {
-            public static async Task<Artifacts> Download(IPlugin<IAutoUpdatableConfig> plugin)
+            public static async Task<Artifacts> Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
                 using (var client = new WebClient())
                 {
-                    if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
-                        client.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client.Headers.Add($"Authorization: token {config.Token}");
                     client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    string artifactsUrl = plugin.Config.AutoUpdateConfig.Url + "/actions/artifacts";
+                    string artifactsUrl = config.Url + "/actions/artifacts";
                     var rawResult = await client.DownloadStringTaskAsync(artifactsUrl);
                     if (rawResult == string.Empty)
                     {
@@ -117,13 +117,13 @@ namespace Mistaken.Updater.API
             [JsonProperty("node_id")]
             public string NodeId { get; set; }
 
-            public async Task Download(IPlugin<IAutoUpdatableConfig> plugin)
+            public async Task Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
             {
-                Log.Debug($"[{plugin.Name}] Downloading |" + this.DownloadUrl, plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                Log.Debug($"[{plugin.Name}] Downloading |" + this.DownloadUrl, config.VerbouseOutput);
                 using (var client2 = new WebClient())
                 {
-                    if (!string.IsNullOrWhiteSpace(plugin.Config.AutoUpdateConfig.Token))
-                        client2.Headers.Add($"Authorization: token {plugin.Config.AutoUpdateConfig.Token}");
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client2.Headers.Add($"Authorization: token {config.Token}");
                     client2.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
                     string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
@@ -133,11 +133,11 @@ namespace Mistaken.Updater.API
                     ZipFile.ExtractToDirectory(path, extractedPath);
                     while (true)
                     {
-                        Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                        Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", config.VerbouseOutput);
                         var files = Directory.GetFiles(extractedPath, "*.dll");
                         if (files.Length != 0)
                         {
-                            Log.Debug($"[{plugin.Name}] Found files in {extractedPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                            Log.Debug($"[{plugin.Name}] Found files in {extractedPath}", config.VerbouseOutput);
                             foreach (var file in files)
                             {
                                 string name = Path.GetFileName(file);
@@ -150,7 +150,7 @@ namespace Mistaken.Updater.API
                                 else
                                     targetPath = Path.Combine(Paths.Plugins, name);
 
-                                Log.Debug($"[{plugin.Name}] Copping {file} to {targetPath}", plugin.Config.AutoUpdateConfig.VerbouseOutput);
+                                Log.Debug($"[{plugin.Name}] Copping {file} to {targetPath}", config.VerbouseOutput);
                                 File.Copy(file, targetPath, true);
                             }
 
