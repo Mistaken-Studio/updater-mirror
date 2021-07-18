@@ -102,9 +102,10 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
+            string fileVersion = string.Empty;
             if (!force)
             {
-                string fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
+                fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
                 if (fileVersion.StartsWith("Dev: "))
                     Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
                 else
@@ -134,6 +135,12 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
 
+                        if (!force && release.Tag == fileVersion)
+                        {
+                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            return false;
+                        }
+
                         foreach (var asset in release.Assets)
                             asset.DownloadAsset(plugin, config);
 
@@ -160,7 +167,8 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
-                        if (!force && artifact.NodeId == plugin.Version.ToString())
+
+                        if (!force && "Dev: " + artifact.NodeId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -197,6 +205,12 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
 
+                        if (!force && release.Tag == fileVersion)
+                        {
+                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            return false;
+                        }
+
                         foreach (var link in release.Assets.Links)
                             link.Download(plugin, config);
 
@@ -223,7 +237,7 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var job = jobs[0];
-                        if (!force && job.Commit.ShortId == plugin.Version.ToString())
+                        if (!force && "Dev: " + job.Commit.ShortId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
