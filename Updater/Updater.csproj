@@ -36,10 +36,18 @@
   <ItemGroup>
     <Reference Include="Exiled.API" HintPath="$(MISTAKEN_REFERENCES)\Exiled.API.dll" />
     <Reference Include="Exiled.Events" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Events.dll" />
+    <Reference Include="Exiled.Loader" HintPath="$(MISTAKEN_REFERENCES)\Exiled.Loader.dll" />
     <Reference Include="Newtonsoft.Json" HintPath="$(MISTAKEN_REFERENCES)\Newtonsoft.Json.dll" />
+    <Reference Include="CommandSystem.Core" HintPath="$(MISTAKEN_REFERENCES)\CommandSystem.Core.dll" />
     <Reference Include="Assembly-CSharp-Publicized.dll" HintPath="$(MISTAKEN_REFERENCES)\Assembly-CSharp-Publicized.dll" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,11 +56,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutoUpdatablePlugin.cs" />
-    <Compile Include="AutoUpdateType.cs" />
-    <Compile Include="GitHub.cs" />
-    <Compile Include="GitLab.cs" />
-    <Compile Include="IAutoUpdatableConfig.cs" />
+    <Compile Include="Config\AutoUpdateConfig.cs" />
+    <Compile Include="Internal\AutoUpdater.cs" />
+    <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
+    <Compile Include="Config\AutoUpdateType.cs" />
+    <Compile Include="Internal\AutoUpdateCommand.cs" />
+    <Compile Include="API\GitHub.cs" />
+    <Compile Include="API\GitLab.cs" />
+    <Compile Include="Config\IAutoUpdatableConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
