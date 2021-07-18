@@ -131,6 +131,7 @@ namespace Mistaken.Updater.API
                     string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
                     ZipFile.ExtractToDirectory(path, extractedPath);
                     File.Delete(path);
+                    string baseExtractedPath = extractedPath;
                     while (true)
                     {
                         Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", config.VerbouseOutput);
@@ -167,7 +168,7 @@ namespace Mistaken.Updater.API
                         extractedPath = directories[0];
                     }
 
-                    Directory.Delete(extractedPath, true);
+                    Directory.Delete(baseExtractedPath, true);
                 }
             }
         }

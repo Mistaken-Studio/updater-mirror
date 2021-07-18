@@ -108,7 +108,7 @@ namespace Mistaken.Updater.Internal
                 if (fileVersion.StartsWith("Dev: "))
                     Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
                 else
-                { 
+                {
                     if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
                     {
                         Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
