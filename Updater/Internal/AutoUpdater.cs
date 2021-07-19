@@ -102,13 +102,20 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
+            string fileVersion = string.Empty;
             if (!force)
             {
-                if (File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt")) != plugin.Version.ToString())
+                fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
+                if (fileVersion.StartsWith("Dev: "))
+                    Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
+                else
                 {
-                    Log.Info($"[{plugin.Name}] Update is downloaded, server will restart next round");
-                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                    return false;
+                    if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
+                    {
+                        Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
+                        ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                        return false;
+                    }
                 }
             }
 
@@ -125,6 +132,12 @@ namespace Mistaken.Updater.Internal
                         if (!force && release.Tag == plugin.Version.ToString())
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
+                            return false;
+                        }
+
+                        if (!force && release.Tag == fileVersion)
+                        {
+                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
                             return false;
                         }
 
@@ -154,7 +167,8 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
-                        if (!force && artifact.NodeId == plugin.Version.ToString())
+
+                        if (!force && "Dev: " + artifact.NodeId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -162,7 +176,7 @@ namespace Mistaken.Updater.Internal
 
                         artifact.Download(plugin, config);
 
-                        newVersion = artifact.NodeId;
+                        newVersion = "Dev: " + artifact.NodeId;
                     }
                     catch (System.Exception ex)
                     {
@@ -188,6 +202,12 @@ namespace Mistaken.Updater.Internal
                         if (!force && release.Tag == plugin.Version.ToString())
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
+                            return false;
+                        }
+
+                        if (!force && release.Tag == fileVersion)
+                        {
+                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
                             return false;
                         }
 
@@ -217,7 +237,7 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var job = jobs[0];
-                        if (!force && job.Commit.ShortId == plugin.Version.ToString())
+                        if (!force && "Dev: " + job.Commit.ShortId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -225,7 +245,7 @@ namespace Mistaken.Updater.Internal
 
                         job.DownloadArtifacts(plugin, config);
 
-                        newVersion = job.Commit.ShortId;
+                        newVersion = "Dev: " + job.Commit.ShortId;
                     }
                     catch (System.Exception ex)
                     {

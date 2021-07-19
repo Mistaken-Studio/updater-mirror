@@ -76,12 +76,14 @@ namespace Mistaken.Updater.API
                         string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
                         client.DownloadFile(this.Url, path);
                         File.Copy(path, Path.Combine(Paths.Dependencies, name), true);
+                        File.Delete(path);
                     }
                     else
                     {
                         string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
                         client.DownloadFile(this.Url, path);
                         File.Copy(path, Path.Combine(Paths.Plugins, name), true);
+                        File.Delete(path);
                     }
                 }
             }
@@ -119,12 +121,17 @@ namespace Mistaken.Updater.API
             {
                 using (var client = new WebClient())
                 {
+                    if (!string.IsNullOrWhiteSpace(config.Token))
+                        client.Headers.Add($"PRIVATE-TOKEN: {config.Token}");
+                    client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     string artifactUrl = config.Url + $"/jobs/{this.Id}/artifacts";
                     Log.Debug($"[{plugin.Name}] Downloading |" + artifactUrl, config.VerbouseOutput);
                     string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
                     client.DownloadFile(artifactUrl, path);
                     string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
                     ZipFile.ExtractToDirectory(path, extractedPath);
+                    File.Delete(path);
+                    string baseExtractedPath = extractedPath;
                     while (true)
                     {
                         Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", config.VerbouseOutput);
@@ -160,6 +167,8 @@ namespace Mistaken.Updater.API
 
                         extractedPath = directories[0];
                     }
+
+                    Directory.Delete(baseExtractedPath, true);
                 }
             }
         }
