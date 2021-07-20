@@ -40,7 +40,7 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
-            string pluginName = arguments.Array[1].ToLower();
+            string pluginName = arguments.Array[arguments.Offset].ToLower();
 
             var plugin = Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>).FirstOrDefault(x => x.Name.ToLower() == pluginName || x.Prefix.ToLower() == pluginName);
 
