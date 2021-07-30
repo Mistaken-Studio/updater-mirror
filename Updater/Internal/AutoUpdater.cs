@@ -263,6 +263,7 @@ namespace Mistaken.Updater.Internal
             File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), newVersion);
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+            Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {newVersion} downloaded, server will restart next round");
             return true;
         }
 
