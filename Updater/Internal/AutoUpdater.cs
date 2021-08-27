@@ -33,7 +33,7 @@ namespace Mistaken.Updater.Internal
         public override PluginPriority Priority => PluginPriority.Last;
 
         /// <inheritdoc/>
-        public override Version RequiredExiledVersion => new Version(2, 11, 0);
+        public override Version RequiredExiledVersion => new Version(3, 0, 0, 57);
 
         /// <inheritdoc/>
         public override string Prefix => "MUPDATER";
