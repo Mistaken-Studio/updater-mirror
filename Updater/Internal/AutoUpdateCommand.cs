@@ -23,7 +23,7 @@ namespace Mistaken.Updater.Internal
         public string Command => "autoupdate";
 
         /// <inheritdoc/>
-        public string[] Aliases => new string[0];
+        public string[] Aliases => new string[] { "update" };
 
         /// <inheritdoc/>
         public string Description => "Forces Auto Update";
@@ -40,7 +40,7 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
-            string pluginName = arguments.Array[0].ToLower();
+            string pluginName = arguments.Array[arguments.Offset].ToLower();
 
             var plugin = Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>).FirstOrDefault(x => x.Name.ToLower() == pluginName || x.Prefix.ToLower() == pluginName);
 

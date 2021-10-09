@@ -22,11 +22,11 @@ namespace Mistaken.Updater.Internal
     public class AutoUpdaterPluginConfig : IAutoUpdatableConfig
     {
         /// <inheritdoc/>
-        public Dictionary<string, string> AutoUpdateConfig { get; set; } = new Dictionary<string, string>()
+        public Dictionary<string, string> AutoUpdateConfig { get; set; } = new Dictionary<string, string>
         {
-            { "Url", null },
-            { "Token", null },
-            { "Type", "GITHUB" },
+            { "Url", "https://git.mistaken.pl/api/v4/projects/7" },
+            { "Token", string.Empty },
+            { "Type", "GITLAB" },
             { "VerbouseOutput", "false" },
         };
 

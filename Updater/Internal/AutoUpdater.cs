@@ -33,7 +33,7 @@ namespace Mistaken.Updater.Internal
         public override PluginPriority Priority => PluginPriority.Last;
 
         /// <inheritdoc/>
-        public override Version RequiredExiledVersion => new Version(2, 11, 0);
+        public override Version RequiredExiledVersion => new Version(3, 0, 3);
 
         /// <inheritdoc/>
         public override string Prefix => "MUPDATER";
@@ -263,6 +263,7 @@ namespace Mistaken.Updater.Internal
             File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), newVersion);
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+            Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {newVersion} downloaded, server will restart next round");
             return true;
         }
 
