@@ -145,7 +145,7 @@ namespace Mistaken.Updater.Internal
 
                         if (!force && release.Tag == fileVersion)
                         {
-                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return false;
                         }
@@ -216,7 +216,7 @@ namespace Mistaken.Updater.Internal
 
                         if (!force && release.Tag == fileVersion)
                         {
-                            Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return false;
                         }
@@ -279,7 +279,7 @@ namespace Mistaken.Updater.Internal
                             }
                             else if (!force && manifest.Version == fileVersion)
                             {
-                                Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                                Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                                 ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                                 return false;
                             }
