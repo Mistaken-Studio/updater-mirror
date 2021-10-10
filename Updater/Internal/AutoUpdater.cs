@@ -123,6 +123,8 @@ namespace Mistaken.Updater.Internal
 
             switch (config.Type)
             {
+                case AutoUpdateType.DISABLED:
+                    return false;
                 case AutoUpdateType.GITHUB:
                     Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", config.VerbouseOutput);
                     try
@@ -138,6 +140,7 @@ namespace Mistaken.Updater.Internal
                         if (!force && release.Tag == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return false;
                         }
 
@@ -208,6 +211,7 @@ namespace Mistaken.Updater.Internal
                         if (!force && release.Tag == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                            ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                             return false;
                         }
 
