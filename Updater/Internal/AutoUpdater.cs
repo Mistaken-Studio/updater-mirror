@@ -137,7 +137,7 @@ namespace Mistaken.Updater.Internal
                     {
                         var release = GitHub.Release.DownloadLatest(plugin, config);
 
-                        if (!force && release.Tag == pluginVersion.ToString())
+                        if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -208,11 +208,13 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var release = releases[0];
-                        if (!force && release.Tag == pluginVersion.ToString())
+                        if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
                         }
+                        else
+                            Log.Debug($"[{plugin.Name}] Not up to date, Current: {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}, Newest: {release.Tag}", config.VerbouseOutput);
 
                         if (!force && release.Tag == fileVersion)
                         {
@@ -272,7 +274,7 @@ namespace Mistaken.Updater.Internal
                         try
                         {
                             Manifest manifest = JsonConvert.DeserializeObject<Manifest>(client.DownloadString($"{config.Url}/manifest.json"));
-                            if (!force && manifest.Version == pluginVersion.ToString())
+                            if (!force && manifest.Version == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                             {
                                 Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                                 return false;
