@@ -12,6 +12,11 @@ namespace Mistaken.Updater.Config
     public enum AutoUpdateType
     {
         /// <summary>
+        /// Auto update is disabled
+        /// </summary>
+        DISABLED,
+
+        /// <summary>
         /// Download update from GitLab
         /// </summary>
         GITLAB,
