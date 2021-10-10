@@ -24,7 +24,7 @@ namespace Mistaken.Updater.Internal
         /// <inheritdoc/>
         public Dictionary<string, string> AutoUpdateConfig { get; set; } = new Dictionary<string, string>
         {
-            { "Url", "https://git.mistaken.pl/api/v4/projects/7" },
+            { "Url", "https://git.mistaken.pl/api/v4/projects/8" },
             { "Token", string.Empty },
             { "Type", "GITLAB" },
             { "VerbouseOutput", "false" },

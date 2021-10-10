@@ -88,7 +88,7 @@ namespace Mistaken.Updater.Config
         /// Gets or sets url used for auto updating.
         /// For GitLab it should be something like "https://gitlab.example.com/api/v4/projects/1/".
         /// For GitHub it should be something like "https://api.github.com/repos/example/repo/".
-        /// For HTTP is should be something like "https://example.com/plugins/pluginname" and it should contain two files: 
+        /// For HTTP is should be something like "https://example.com/plugins/pluginname" and it should contain two files:
         ///     manifest.json with latest version of plugin and plugin dll name with .dll.
         ///         Example manifest.json content:
         ///         {

@@ -261,7 +261,7 @@ namespace Mistaken.Updater.Internal
                     break;
                 case AutoUpdateType.HTTP:
                     Log.Debug($"[{plugin.Name}] Checking for update using HTTP, chekcing for releases", config.VerbouseOutput);
-                    using(WebClient client = new WebClient())
+                    using (WebClient client = new WebClient())
                     {
                         try
                         {
@@ -277,7 +277,8 @@ namespace Mistaken.Updater.Internal
                                 ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                                 return false;
                             }
-                            client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, "AutoUpdater", $"{manifest.PluginName}"));
+
+                            client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, manifest.PluginName));
                             newVersion = manifest.Version;
                         }
                         catch (Exception ex)
@@ -287,6 +288,7 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
                     }
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({config.Type})");

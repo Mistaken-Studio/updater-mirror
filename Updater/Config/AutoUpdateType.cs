@@ -37,7 +37,7 @@ namespace Mistaken.Updater.Config
         GITHUB_DEVELOPMENT,
 
         /// <summary>
-        /// Download update from HTTP Server, 
+        /// Download update from HTTP Server
         /// </summary>
         HTTP,
     }

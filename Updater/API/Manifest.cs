@@ -1,17 +1,19 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// -----------------------------------------------------------------------
+// <copyright file="Manifest.cs" company="Mistaken">
+// Copyright (c) Mistaken. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+using Newtonsoft.Json;
 
 namespace Mistaken.Updater.API
 {
-    public class Manifest
+    internal struct Manifest
     {
         [JsonProperty("version")]
         public string Version { get; set; }
+
         [JsonProperty("plugin_name")]
-        public string PluginName {  get; set; }
+        public string PluginName { get; set; }
     }
 }
