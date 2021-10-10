@@ -96,9 +96,9 @@ namespace Mistaken.Updater.Internal
         {
             var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
             Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
-            if (string.IsNullOrWhiteSpace(config.Url))
+            if (string.IsNullOrWhiteSpace(config.Url) || config.Type == AutoUpdateType.DISABLED)
             {
-                Log.Debug("AutoUpdate is disabled", config.VerbouseOutput);
+                Log.Debug($"[{plugin.Name}] AutoUpdate is disabled", config.VerbouseOutput);
                 return false;
             }
 
