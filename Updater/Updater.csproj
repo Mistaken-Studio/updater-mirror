@@ -56,6 +56,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\Manifest.cs" />
     <Compile Include="Config\AutoUpdateConfig.cs" />
     <Compile Include="Internal\AutoUpdater.cs" />
     <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
