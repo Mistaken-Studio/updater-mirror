@@ -96,11 +96,17 @@ namespace Mistaken.Updater.Internal
         {
             var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
             Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
-            if (string.IsNullOrWhiteSpace(config.Url))
+            if (string.IsNullOrWhiteSpace(config.Url) || config.Type == AutoUpdateType.DISABLED)
             {
-                Log.Debug("AutoUpdate is disabled", config.VerbouseOutput);
+                Log.Debug($"[{plugin.Name}] AutoUpdate is disabled", config.VerbouseOutput);
                 return false;
             }
+
+            Version pluginVersion = plugin.Version;
+
+#warning Temporiary fix
+            if (pluginVersion.Major >= 3)
+                pluginVersion = plugin.Assembly.GetName().Version;
 
             string fileVersion = string.Empty;
             if (!force)
@@ -110,9 +116,9 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
                 else
                 {
-                    if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
+                    if (fileVersion != $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                     {
-                        Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
+                        Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {fileVersion} is downloaded, server will restart next round");
                         ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                         return false;
                     }
@@ -259,7 +265,37 @@ namespace Mistaken.Updater.Internal
                     }
 
                     break;
+                case AutoUpdateType.HTTP:
+                    Log.Debug($"[{plugin.Name}] Checking for update using HTTP, chekcing for releases", config.VerbouseOutput);
+                    using (WebClient client = new WebClient())
+                    {
+                        try
+                        {
+                            Manifest manifest = JsonConvert.DeserializeObject<Manifest>(client.DownloadString($"{config.Url}/manifest.json"));
+                            if (!force && manifest.Version == plugin.Version.ToString())
+                            {
+                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
+                                return false;
+                            }
+                            else if (!force && manifest.Version == fileVersion)
+                            {
+                                Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                                return false;
+                            }
 
+                            client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, manifest.PluginName));
+                            newVersion = manifest.Version;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex.Message);
+                            Log.Error(ex.StackTrace);
+                            return false;
+                        }
+                    }
+
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({config.Type})");
             }

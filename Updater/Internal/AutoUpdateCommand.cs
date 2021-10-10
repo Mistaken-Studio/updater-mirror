@@ -42,6 +42,14 @@ namespace Mistaken.Updater.Internal
 
             string pluginName = arguments.Array[arguments.Offset].ToLower();
 
+            if (pluginName == "*")
+            {
+                if (AutoUpdater.Instance.DoAutoUpdates())
+                    Exiled.API.Features.Server.Restart();
+
+                return true;
+            }
+
             var plugin = Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>).FirstOrDefault(x => x.Name.ToLower() == pluginName || x.Prefix.ToLower() == pluginName);
 
             if (plugin == null)
