@@ -259,7 +259,35 @@ namespace Mistaken.Updater.Internal
                     }
 
                     break;
-
+                case AutoUpdateType.HTTP:
+                    Log.Debug($"[{plugin.Name}] Checking for update using HTTP, chekcing for releases", config.VerbouseOutput);
+                    using(WebClient client = new WebClient())
+                    {
+                        try
+                        {
+                            Manifest manifest = JsonConvert.DeserializeObject<Manifest>(client.DownloadString($"{config.Url}/manifest.json"));
+                            if (!force && manifest.Version == plugin.Version.ToString())
+                            {
+                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
+                                return false;
+                            }
+                            else if (!force && manifest.Version == fileVersion)
+                            {
+                                Log.Debug($"[{plugin.Name}] Update already downloaded, waiting for server restart", config.VerbouseOutput);
+                                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                                return false;
+                            }
+                            client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, "AutoUpdater", $"{manifest.PluginName}"));
+                            newVersion = manifest.Version;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex.Message);
+                            Log.Error(ex.StackTrace);
+                            return false;
+                        }
+                    }
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({config.Type})");
             }

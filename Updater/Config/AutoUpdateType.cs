@@ -35,5 +35,10 @@ namespace Mistaken.Updater.Config
         /// Download update from GitHub using artifacts
         /// </summary>
         GITHUB_DEVELOPMENT,
+
+        /// <summary>
+        /// Download update from HTTP Server, 
+        /// </summary>
+        HTTP,
     }
 }
