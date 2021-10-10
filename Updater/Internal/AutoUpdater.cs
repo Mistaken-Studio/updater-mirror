@@ -137,7 +137,7 @@ namespace Mistaken.Updater.Internal
                     {
                         var release = GitHub.Release.DownloadLatest(plugin, config);
 
-                        if (!force && release.Tag == plugin.Version.ToString())
+                        if (!force && release.Tag == pluginVersion.ToString())
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -208,7 +208,7 @@ namespace Mistaken.Updater.Internal
                         }
 
                         var release = releases[0];
-                        if (!force && release.Tag == plugin.Version.ToString())
+                        if (!force && release.Tag == pluginVersion.ToString())
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                             return false;
@@ -272,7 +272,7 @@ namespace Mistaken.Updater.Internal
                         try
                         {
                             Manifest manifest = JsonConvert.DeserializeObject<Manifest>(client.DownloadString($"{config.Url}/manifest.json"));
-                            if (!force && manifest.Version == plugin.Version.ToString())
+                            if (!force && manifest.Version == pluginVersion.ToString())
                             {
                                 Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
                                 return false;
@@ -303,7 +303,7 @@ namespace Mistaken.Updater.Internal
             File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), newVersion);
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-            Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {newVersion} downloaded, server will restart next round");
+            Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {newVersion} downloaded, server will restart next round");
             return true;
         }
 
