@@ -102,6 +102,12 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
+            Version pluginVersion = plugin.Version;
+
+#warning Temporiary fix
+            if (pluginVersion.Major >= 3)
+                pluginVersion = plugin.Assembly.GetName().Version;
+
             string fileVersion = string.Empty;
             if (!force)
             {
@@ -110,9 +116,9 @@ namespace Mistaken.Updater.Internal
                     Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
                 else
                 {
-                    if (fileVersion != $"{plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build}")
+                    if (fileVersion != $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                     {
-                        Log.Info($"[{plugin.Name}] Update from {plugin.Version.Major}.{plugin.Version.Minor}.{plugin.Version.Build} to {fileVersion} is downloaded, server will restart next round");
+                        Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {fileVersion} is downloaded, server will restart next round");
                         ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                         return false;
                     }
