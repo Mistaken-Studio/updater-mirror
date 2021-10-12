@@ -18,6 +18,10 @@ namespace Mistaken.Updater.API
 {
     internal class GitLab
     {
+        internal struct ArtifactsFile
+        {
+        }
+
         internal class Release
         {
             public static Release[] Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
@@ -114,6 +118,9 @@ namespace Mistaken.Updater.API
             [JsonProperty("id")]
             public int Id { get; set; }
 
+            [JsonProperty("artifacts_file")]
+            public ArtifactsFile? ArtifactsFile { get; set; }
+
             [JsonProperty("commit")]
             public Commit Commit { get; set; }
 
@@ -125,7 +132,7 @@ namespace Mistaken.Updater.API
                         client.Headers.Add($"PRIVATE-TOKEN: {config.Token}");
                     client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
                     string artifactUrl = config.Url + $"/jobs/{this.Id}/artifacts";
-                    Log.Debug($"[{plugin.Name}] Downloading |" + artifactUrl, config.VerbouseOutput);
+                    Log.Debug($"[{plugin.Name}] Downloading | " + artifactUrl, config.VerbouseOutput);
                     string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
                     client.DownloadFile(artifactUrl, path);
                     string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
