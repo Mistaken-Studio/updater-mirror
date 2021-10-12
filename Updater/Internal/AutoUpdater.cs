@@ -248,7 +248,7 @@ namespace Mistaken.Updater.Internal
                             return false;
                         }
 
-                        var job = jobs[0];
+                        var job = jobs.First(x => x.ArtifactsFile.HasValue);
                         if (!force && "Dev: " + job.Commit.ShortId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
