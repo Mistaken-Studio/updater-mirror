@@ -157,7 +157,7 @@ namespace Mistaken.Updater.Internal
                     }
                     catch (System.Exception ex)
                     {
-                        Log.Error($"AutoUpdate Failed: {ex.Message}");
+                        Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
                         return false;
                     }
@@ -261,7 +261,7 @@ namespace Mistaken.Updater.Internal
                     }
                     catch (System.Exception ex)
                     {
-                        Log.Error($"AutoUpdate Failed: {ex.Message}");
+                        Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
                         return false;
                     }
@@ -291,7 +291,7 @@ namespace Mistaken.Updater.Internal
                         }
                         catch (Exception ex)
                         {
-                            Log.Error(ex.Message);
+                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                             Log.Error(ex.StackTrace);
                             return false;
                         }
