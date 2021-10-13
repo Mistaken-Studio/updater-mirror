@@ -106,7 +106,10 @@ namespace Mistaken.Updater.Internal
 
 #warning Temporiary fix
             if (pluginVersion.Major >= 3)
+            {
+                Log.Warn($"[{plugin.Name}] Plugin version out of range");
                 pluginVersion = plugin.Assembly.GetName().Version;
+            }
 
             string fileVersion = string.Empty;
             if (!force)
