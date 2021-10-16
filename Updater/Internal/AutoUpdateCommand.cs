@@ -48,6 +48,7 @@ namespace Mistaken.Updater.Internal
                 if (AutoUpdater.Instance.DoAutoUpdates())
                 {
                     Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                    IdleMode.PauseIdleMode = true;
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                     response = "Restarting";
                     return true;
@@ -70,6 +71,7 @@ namespace Mistaken.Updater.Internal
             if (AutoUpdater.Instance.DoAutoUpdate(plugin, false))
             {
                 Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                IdleMode.PauseIdleMode = true;
                 MEC.Timing.CallDelayed(1, () => Server.Restart());
             }
 
