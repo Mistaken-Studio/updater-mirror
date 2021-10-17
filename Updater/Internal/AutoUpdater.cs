@@ -117,6 +117,9 @@ namespace Mistaken.Updater.Internal
 
             Version pluginVersion = plugin.Version;
 
+            if (pluginVersion.Major >= 3)
+                pluginVersion = plugin.Assembly.GetName().Version;
+
             string fileVersion = string.Empty;
             if (!force)
             {
