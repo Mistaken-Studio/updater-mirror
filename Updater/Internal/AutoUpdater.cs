@@ -5,9 +5,7 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -55,7 +53,15 @@ namespace Mistaken.Updater.Internal
                 Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
             Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
-            this.DoAutoUpdates();
+            Task.Run(() =>
+            {
+                if (this.DoAutoUpdates())
+                {
+                    Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                    IdleMode.PauseIdleMode = true;
+                    MEC.Timing.CallDelayed(1, () => Server.Restart());
+                }
+            });
         }
 
         /// <inheritdoc/>
@@ -68,6 +74,13 @@ namespace Mistaken.Updater.Internal
 
         internal static AutoUpdater Instance { get; private set; }
 
+        internal enum Action : byte
+        {
+            NONE,
+            RESTART,
+            UPDATE_AND_RESTART,
+        }
+
         internal bool DoAutoUpdates()
         {
             bool changed = false;
@@ -78,13 +91,13 @@ namespace Mistaken.Updater.Internal
                 if (!File.Exists(path))
                 {
                     Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, true))
+                    if (this.DoAutoUpdate(plugin, true) != Action.NONE)
                         changed = true;
                 }
                 else
                 {
                     Log.Debug($"[{plugin.Name}] {path} exist, checking version", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, false))
+                    if (this.DoAutoUpdate(plugin, false) != Action.NONE)
                         changed = true;
                 }
             }
@@ -92,24 +105,17 @@ namespace Mistaken.Updater.Internal
             return changed;
         }
 
-        internal bool DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
+        internal Action DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
         {
             var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
             Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
             if (string.IsNullOrWhiteSpace(config.Url) || config.Type == AutoUpdateType.DISABLED)
             {
                 Log.Debug($"[{plugin.Name}] AutoUpdate is disabled", config.VerbouseOutput);
-                return false;
+                return Action.NONE;
             }
 
             Version pluginVersion = plugin.Version;
-
-#warning Temporiary fix
-            if (pluginVersion.Major >= 3)
-            {
-                Log.Warn($"[{plugin.Name}] Plugin version out of range");
-                pluginVersion = plugin.Assembly.GetName().Version;
-            }
 
             string fileVersion = string.Empty;
             if (!force)
@@ -123,7 +129,7 @@ namespace Mistaken.Updater.Internal
                     {
                         Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {fileVersion} is downloaded, server will restart next round");
                         ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                        return false;
+                        return Action.RESTART;
                     }
                 }
             }
@@ -133,7 +139,7 @@ namespace Mistaken.Updater.Internal
             switch (config.Type)
             {
                 case AutoUpdateType.DISABLED:
-                    return false;
+                    return Action.NONE;
                 case AutoUpdateType.GITHUB:
                     Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", config.VerbouseOutput);
                     try
@@ -143,14 +149,14 @@ namespace Mistaken.Updater.Internal
                         if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                            return false;
+                            return Action.NONE;
                         }
 
                         if (!force && release.Tag == fileVersion)
                         {
                             Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                            return false;
+                            return Action.RESTART;
                         }
 
                         foreach (var asset in release.Assets)
@@ -162,7 +168,7 @@ namespace Mistaken.Updater.Internal
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
-                        return false;
+                        return Action.NONE;
                     }
 
                     break;
@@ -175,7 +181,7 @@ namespace Mistaken.Updater.Internal
                         if (artifacts.ArtifactsArray.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] No artifacts found");
-                            return false;
+                            return Action.NONE;
                         }
 
                         var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
@@ -183,7 +189,7 @@ namespace Mistaken.Updater.Internal
                         if (!force && "Dev: " + artifact.NodeId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                            return false;
+                            return Action.NONE;
                         }
 
                         artifact.Download(plugin, config);
@@ -194,7 +200,7 @@ namespace Mistaken.Updater.Internal
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
-                        return false;
+                        return Action.NONE;
                     }
 
                     break;
@@ -207,14 +213,14 @@ namespace Mistaken.Updater.Internal
                         if (releases.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No releases found");
-                            return false;
+                            return Action.NONE;
                         }
 
                         var release = releases[0];
                         if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                            return false;
+                            return Action.NONE;
                         }
                         else
                             Log.Debug($"[{plugin.Name}] Not up to date, Current: {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}, Newest: {release.Tag}", config.VerbouseOutput);
@@ -223,7 +229,7 @@ namespace Mistaken.Updater.Internal
                         {
                             Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                            return false;
+                            return Action.RESTART;
                         }
 
                         foreach (var link in release.Assets.Links)
@@ -235,7 +241,7 @@ namespace Mistaken.Updater.Internal
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
-                        return false;
+                        return Action.NONE;
                     }
 
                     break;
@@ -248,14 +254,14 @@ namespace Mistaken.Updater.Internal
                         if (jobs.Length == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
-                            return false;
+                            return Action.NONE;
                         }
 
                         var job = jobs.First(x => x.ArtifactsFile.HasValue);
                         if (!force && "Dev: " + job.Commit.ShortId == fileVersion)
                         {
                             Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                            return false;
+                            return Action.NONE;
                         }
 
                         job.DownloadArtifacts(plugin, config);
@@ -266,7 +272,7 @@ namespace Mistaken.Updater.Internal
                     {
                         Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                         Log.Error(ex.StackTrace);
-                        return false;
+                        return Action.NONE;
                     }
 
                     break;
@@ -280,13 +286,13 @@ namespace Mistaken.Updater.Internal
                             if (!force && manifest.Version == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
                             {
                                 Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                                return false;
+                                return Action.NONE;
                             }
                             else if (!force && manifest.Version == fileVersion)
                             {
                                 Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
                                 ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                                return false;
+                                return Action.RESTART;
                             }
 
                             client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, manifest.PluginName));
@@ -296,7 +302,7 @@ namespace Mistaken.Updater.Internal
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
                             Log.Error(ex.StackTrace);
-                            return false;
+                            return Action.NONE;
                         }
                     }
 
@@ -309,12 +315,17 @@ namespace Mistaken.Updater.Internal
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
             ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
             Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {newVersion} downloaded, server will restart next round");
-            return true;
+            return Action.UPDATE_AND_RESTART;
         }
 
         private void Server_RestartingRound()
         {
-            this.DoAutoUpdates();
+            if (this.DoAutoUpdates())
+            {
+                Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                IdleMode.PauseIdleMode = true;
+                MEC.Timing.CallDelayed(1, () => Server.Restart());
+            }
         }
     }
 }

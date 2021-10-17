@@ -68,7 +68,7 @@ namespace Mistaken.Updater.Internal
                 return false;
             }
 
-            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false))
+            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false) != AutoUpdater.Action.NONE)
             {
                 Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
                 IdleMode.PauseIdleMode = true;
