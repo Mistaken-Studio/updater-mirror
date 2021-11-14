@@ -254,7 +254,7 @@ namespace Mistaken.Updater.Internal
                     try
                     {
                         var jobs = GitLab.Job.Download(plugin, config);
-                        if (jobs.Length == 0)
+                        if (jobs.Where(x => x.ArtifactsFile.HasValue).Count() == 0)
                         {
                             Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
                             return Action.NONE;
