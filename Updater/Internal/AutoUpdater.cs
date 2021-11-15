@@ -52,7 +52,7 @@ namespace Mistaken.Updater.Internal
             else
                 Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
-            Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
+            MEC.Timing.CallDelayed(5, () => Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound);
             Exiled.Events.Handlers.Server.WaitingForPlayers += this.Server_WaitingForPlayers;
             Task.Run(() =>
             {
