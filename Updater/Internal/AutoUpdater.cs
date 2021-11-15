@@ -52,7 +52,7 @@ namespace Mistaken.Updater.Internal
             else
                 Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
-            Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
+            MEC.Timing.CallDelayed(5, () => Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound);
             Exiled.Events.Handlers.Server.WaitingForPlayers += this.Server_WaitingForPlayers;
             Task.Run(() =>
             {
@@ -107,7 +107,7 @@ namespace Mistaken.Updater.Internal
             return changed;
         }
 
-        internal Action DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force)
+        internal Action DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force, AutoUpdateType forcedConfig = AutoUpdateType.DISABLED)
         {
             var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
             Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
@@ -140,8 +140,9 @@ namespace Mistaken.Updater.Internal
             }
 
             string newVersion;
-
-            switch (config.Type)
+            if (forcedConfig == AutoUpdateType.DISABLED)
+                forcedConfig = config.Type;
+            switch (forcedConfig)
             {
                 case AutoUpdateType.DISABLED:
                     return Action.NONE;
@@ -185,8 +186,8 @@ namespace Mistaken.Updater.Internal
                         var artifacts = GitHub.Artifacts.Download(plugin, config);
                         if (artifacts.ArtifactsArray.Length == 0)
                         {
-                            Log.Error($"[{plugin.Name}] No artifacts found");
-                            return Action.NONE;
+                            Log.Debug($"[{plugin.Name}] No artifacts found, searching for Releases");
+                            return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITHUB);
                         }
 
                         var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
@@ -258,8 +259,8 @@ namespace Mistaken.Updater.Internal
                         var jobs = GitLab.Job.Download(plugin, config);
                         if (jobs.Where(x => x.ArtifactsFile.HasValue).Count() == 0)
                         {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
-                            return Action.NONE;
+                            Log.Debug($"[{plugin.Name}] No jobs found, searching for releases");
+                            return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITLAB);
                         }
 
                         var job = jobs.First(x => x.ArtifactsFile.HasValue);
@@ -329,13 +330,18 @@ namespace Mistaken.Updater.Internal
         {
             if (this.ignoreRestartingRound)
                 return;
-            if (this.DoAutoUpdates())
+            MEC.Timing.CallDelayed(.1f, () =>
             {
-                this.ignoreRestartingRound = true;
-                Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
-                IdleMode.PauseIdleMode = true;
-                MEC.Timing.CallDelayed(1, () => Server.Restart());
-            }
+                if (this.DoAutoUpdates())
+                {
+                    this.ignoreRestartingRound = true;
+
+                    // Due to CallDelayed this will not work
+                    /*Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                    IdleMode.PauseIdleMode = true;
+                    MEC.Timing.CallDelayed(1, () => Server.Restart());*/
+                }
+            });
         }
 
         private void Server_WaitingForPlayers()
