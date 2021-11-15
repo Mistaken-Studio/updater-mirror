@@ -186,7 +186,7 @@ namespace Mistaken.Updater.Internal
                         var artifacts = GitHub.Artifacts.Download(plugin, config);
                         if (artifacts.ArtifactsArray.Length == 0)
                         {
-                            Log.Error($"[{plugin.Name}] No artifacts found");
+                            Log.Debug($"[{plugin.Name}] No artifacts found, searching for Releases");
                             return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITHUB);
                         }
 
@@ -259,7 +259,7 @@ namespace Mistaken.Updater.Internal
                         var jobs = GitLab.Job.Download(plugin, config);
                         if (jobs.Where(x => x.ArtifactsFile.HasValue).Count() == 0)
                         {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: No jobs found");
+                            Log.Debug($"[{plugin.Name}] No jobs found, searching for releases");
                             return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITLAB);
                         }
 
