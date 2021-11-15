@@ -335,9 +335,11 @@ namespace Mistaken.Updater.Internal
                 if (this.DoAutoUpdates())
                 {
                     this.ignoreRestartingRound = true;
-                    Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+
+                    // Due to CallDelayed this will not work
+                    /*Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
                     IdleMode.PauseIdleMode = true;
-                    MEC.Timing.CallDelayed(1, () => Server.Restart());
+                    MEC.Timing.CallDelayed(1, () => Server.Restart());*/
                 }
             });
         }
