@@ -53,6 +53,7 @@ namespace Mistaken.Updater.Internal
                 Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
             Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound;
+            Exiled.Events.Handlers.Server.WaitingForPlayers += this.Server_WaitingForPlayers;
             Task.Run(() =>
             {
                 if (this.DoAutoUpdates())
@@ -68,6 +69,7 @@ namespace Mistaken.Updater.Internal
         public override void OnDisabled()
         {
             Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
+            Exiled.Events.Handlers.Server.WaitingForPlayers -= this.Server_WaitingForPlayers;
         }
 
         internal static AutoUpdateConfig MyConfig { get; private set; }
@@ -321,14 +323,24 @@ namespace Mistaken.Updater.Internal
             return Action.UPDATE_AND_RESTART;
         }
 
+        private bool ignoreRestartingRound = false;
+
         private void Server_RestartingRound()
         {
+            if (this.ignoreRestartingRound)
+                return;
             if (this.DoAutoUpdates())
             {
+                this.ignoreRestartingRound = true;
                 Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
                 IdleMode.PauseIdleMode = true;
                 MEC.Timing.CallDelayed(1, () => Server.Restart());
             }
+        }
+
+        private void Server_WaitingForPlayers()
+        {
+            this.ignoreRestartingRound = false;
         }
     }
 }
