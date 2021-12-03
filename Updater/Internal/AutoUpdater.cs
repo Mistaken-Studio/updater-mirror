@@ -15,6 +15,7 @@ using Exiled.API.Interfaces;
 using Mistaken.Updater.API;
 using Mistaken.Updater.Config;
 using Newtonsoft.Json;
+using RoundRestarting;
 
 namespace Mistaken.Updater.Internal
 {
@@ -58,7 +59,7 @@ namespace Mistaken.Updater.Internal
             {
                 if (this.DoAutoUpdates())
                 {
-                    Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
                     IdleMode.PauseIdleMode = true;
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                 }
