@@ -13,6 +13,7 @@ using CommandSystem;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
 using Mistaken.Updater.Config;
+using RoundRestarting;
 
 namespace Mistaken.Updater.Internal
 {
@@ -47,7 +48,7 @@ namespace Mistaken.Updater.Internal
             {
                 if (AutoUpdater.Instance.DoAutoUpdates())
                 {
-                    Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
                     IdleMode.PauseIdleMode = true;
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                     response = "Restarting";
@@ -70,7 +71,7 @@ namespace Mistaken.Updater.Internal
 
             if (AutoUpdater.Instance.DoAutoUpdate(plugin, false) != AutoUpdater.Action.NONE)
             {
-                Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
+                Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
                 IdleMode.PauseIdleMode = true;
                 MEC.Timing.CallDelayed(1, () => Server.Restart());
             }
