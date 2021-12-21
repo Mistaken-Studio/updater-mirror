@@ -53,16 +53,18 @@ namespace Mistaken.Updater.Internal
             else
                 Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
 
-            MEC.Timing.CallDelayed(5, () => Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound);
             Exiled.Events.Handlers.Server.WaitingForPlayers += this.Server_WaitingForPlayers;
             Task.Run(() =>
             {
                 if (this.DoAutoUpdates())
                 {
-                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
                     IdleMode.PauseIdleMode = true;
+                    Task.Delay(5000);
+                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                 }
+                else
+                    MEC.Timing.CallDelayed(5, () => Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound);
             });
         }
 
@@ -331,7 +333,10 @@ namespace Mistaken.Updater.Internal
         {
             if (this.ignoreRestartingRound)
                 return;
-            MEC.Timing.CallDelayed(.1f, () =>
+            if (ServerStatic.StopNextRound != ServerStatic.NextRoundAction.DoNothing)
+                return;
+
+            MEC.Timing.CallDelayed(5f, () =>
             {
                 if (this.DoAutoUpdates())
                 {
