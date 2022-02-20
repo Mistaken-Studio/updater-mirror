@@ -60,7 +60,7 @@ namespace Mistaken.Updater.Internal
                 {
                     IdleMode.PauseIdleMode = true;
                     Task.Delay(5000);
-                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
+                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                 }
                 else

@@ -48,7 +48,7 @@ namespace Mistaken.Updater.Internal
             {
                 if (AutoUpdater.Instance.DoAutoUpdates())
                 {
-                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
+                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
                     IdleMode.PauseIdleMode = true;
                     MEC.Timing.CallDelayed(1, () => Server.Restart());
                     response = "Restarting";
@@ -71,7 +71,7 @@ namespace Mistaken.Updater.Internal
 
             if (AutoUpdater.Instance.DoAutoUpdate(plugin, false) != AutoUpdater.Action.NONE)
             {
-                Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true));
+                Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
                 IdleMode.PauseIdleMode = true;
                 MEC.Timing.CallDelayed(1, () => Server.Restart());
             }
