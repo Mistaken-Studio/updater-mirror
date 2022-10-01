@@ -13,14 +13,13 @@ namespace Mistaken.Updater.Config
     /// <summary>
     /// <see cref="IConfig"/> but with fields requied for AutoUpdates.
     /// </summary>
+    [System.Obsolete("Removed in V2")]
     public interface IAutoUpdatableConfig : IConfig
     {
         /// <summary>
         /// Gets or sets config values used by AutoUpdater.
         /// </summary>
         [Description("Auto Update Settings")]
-
-        // AutoUpdateConfig AutoUpdateConfig { get; set; }
         Dictionary<string, string> AutoUpdateConfig { get; set; }
     }
 }

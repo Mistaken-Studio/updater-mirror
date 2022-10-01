@@ -4,33 +4,21 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Net;
-using Exiled.API.Enums;
-using Exiled.API.Features;
+using System.ComponentModel;
 using Exiled.API.Interfaces;
-using Mistaken.Updater.Config;
-using Newtonsoft.Json;
 
 namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc/>
-    public class AutoUpdaterPluginConfig : IAutoUpdatableConfig
+    public class AutoUpdaterPluginConfig : IConfig
     {
         /// <inheritdoc/>
-        public Dictionary<string, string> AutoUpdateConfig { get; set; } = new Dictionary<string, string>
-        {
-            { "Url", "https://git.mistaken.pl/api/v4/projects/8" },
-            { "Token", string.Empty },
-            { "Type", "GITLAB" },
-            { "VerbouseOutput", "false" },
-        };
-
-        /// <inheritdoc/>
         public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether verbose output be displayed.
+        /// </summary>
+        [Description("Value indicating whether verbose output be displayed")]
+        public bool VerboseOutput { get; set; } = false;
     }
 }

@@ -59,14 +59,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\Abstract\IAsset.cs" />
+    <Compile Include="API\Abstract\ICommit.cs" />
+    <Compile Include="API\Abstract\IImplementation.cs" />
+    <Compile Include="API\Abstract\IRelease.cs" />
+    <Compile Include="API\ReleaseUtil.cs" />
     <Compile Include="API\Manifest.cs" />
     <Compile Include="Config\AutoUpdateConfig.cs" />
+    <Compile Include="Config\PluginManifest.cs" />
+    <Compile Include="Config\ServerManifest.cs" />
     <Compile Include="Internal\AutoUpdater.cs" />
     <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
+    <Compile Include="Config\SourceType.cs" />
     <Compile Include="Config\AutoUpdateType.cs" />
     <Compile Include="Internal\AutoUpdateCommand.cs" />
     <Compile Include="API\GitHub.cs" />
     <Compile Include="API\GitLab.cs" />
+    <Compile Include="Config\IAutoUpdateablePlugin.cs" />
+    <Compile Include="Internal\Extensions.cs" />
     <Compile Include="Config\IAutoUpdatableConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -80,9 +90,12 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(MISTAKEN_REFERENCES)\$(TargetFileName)
-copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_REFERENCES)\$(TargetName).xml</PostBuildEvent>
+    <PostBuildEvent>
+      copy $(TargetPath) $(MISTAKEN_REFERENCES)\$(TargetFileName)
+      copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_REFERENCES)\$(TargetName).xml
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>

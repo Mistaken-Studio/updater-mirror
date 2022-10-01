@@ -12,15 +12,20 @@ using System.Threading.Tasks;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
+using Exiled.Loader;
+using JetBrains.Annotations;
 using Mistaken.Updater.API;
+using Mistaken.Updater.API.Abstract;
 using Mistaken.Updater.Config;
 using Newtonsoft.Json;
 using RoundRestarting;
 
+#pragma warning disable CS0618
+
 namespace Mistaken.Updater.Internal
 {
-    /// <inheritdoc/>
-    public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>
+    /// <inheritdoc cref="IPlugin{TConfig}"/>
+    public class AutoUpdater : Plugin<AutoUpdaterPluginConfig>, IAutoUpdateablePlugin
     {
         /// <inheritdoc/>
         public override string Name => "Updater";
@@ -32,36 +37,41 @@ namespace Mistaken.Updater.Internal
         public override PluginPriority Priority => PluginPriority.Last;
 
         /// <inheritdoc/>
-        public override Version RequiredExiledVersion => new Version(3, 0, 3);
+        public override Version RequiredExiledVersion => new Version(5, 2, 0);
 
         /// <inheritdoc/>
         public override string Prefix => "MUPDATER";
+
+        /// <inheritdoc/>
+        public AutoUpdateConfig AutoUpdateConfig => new AutoUpdateConfig
+        {
+            Type = SourceType.GITLAB,
+            Url = "https://git.mistaken.pl/api/v4/projects/8",
+        };
 
         /// <inheritdoc/>
         public override void OnEnabled()
         {
             Instance = this;
 
-            MyConfig = new AutoUpdateConfig(this.Config.AutoUpdateConfig);
-
             var path = Path.Combine(Paths.Plugins, "AutoUpdater");
             if (!Directory.Exists(path))
             {
-                Log.Debug($"{path} doesn't exist, creating...", MyConfig.VerbouseOutput);
+                Log.Debug($"{path} doesn't exist, creating...", VerboseOutput);
                 Directory.CreateDirectory(path);
             }
             else
-                Log.Debug($"{path} exist", MyConfig.VerbouseOutput);
+                Log.Debug($"{path} exist", VerboseOutput);
 
             Exiled.Events.Handlers.Server.WaitingForPlayers += this.Server_WaitingForPlayers;
+
             Task.Run(() =>
             {
                 if (this.DoAutoUpdates())
                 {
                     IdleMode.PauseIdleMode = true;
                     Task.Delay(5000);
-                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
-                    MEC.Timing.CallDelayed(1, () => Server.Restart());
+                    RestartServer();
                 }
                 else
                     MEC.Timing.CallDelayed(5, () => Exiled.Events.Handlers.Server.RestartingRound += this.Server_RestartingRound);
@@ -75,9 +85,11 @@ namespace Mistaken.Updater.Internal
             Exiled.Events.Handlers.Server.WaitingForPlayers -= this.Server_WaitingForPlayers;
         }
 
-        internal static AutoUpdateConfig MyConfig { get; private set; }
-
         internal static AutoUpdater Instance { get; private set; }
+
+        internal static bool VerboseOutput => Instance.Config.VerboseOutput;
+
+        internal static ServerManifest ServerManifest { get; private set; }
 
         internal enum Action : byte
         {
@@ -86,282 +98,443 @@ namespace Mistaken.Updater.Internal
             UPDATE_AND_RESTART,
         }
 
-        internal bool DoAutoUpdates()
+        [CanBeNull]
+        internal PluginManifest GetPluginManifest(IPlugin<IConfig> plugin)
         {
-            bool changed = false;
-            foreach (var plugin in Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>))
-            {
-                var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
-                string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt");
-                if (!File.Exists(path))
-                {
-                    Log.Debug($"[{plugin.Name}]{path} doesn't exist, forcing auto update", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, true) != Action.NONE)
-                        changed = true;
-                }
-                else
-                {
-                    Log.Debug($"[{plugin.Name}] {path} exist, checking version", config.VerbouseOutput);
-                    if (this.DoAutoUpdate(plugin, false) != Action.NONE)
-                        changed = true;
-                }
-            }
+            var name = plugin.GetPluginName();
 
-            return changed;
+            return ServerManifest.Plugins.TryGetValue(name, out var manifest) ? manifest : null;
         }
 
-        internal Action DoAutoUpdate(IPlugin<IAutoUpdatableConfig> plugin, bool force, AutoUpdateType forcedConfig = AutoUpdateType.DISABLED)
+        internal bool DoAutoUpdates()
         {
             try
             {
-                var config = new AutoUpdateConfig(plugin.Config.AutoUpdateConfig);
-                Log.Debug($"[{plugin.Name}] Running AutoUpdate...", config.VerbouseOutput);
-                if (string.IsNullOrWhiteSpace(config.Url) || config.Type == AutoUpdateType.DISABLED)
+                if (LoadServerManifest())
+                    return true;
+
+                this.HandleBackwardsCompatibility();
+                this.UpdateManifest();
+
+                return this.UpdateBasedOnManifest();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Exception when handling auto update!");
+                Log.Error(ex);
+                return false;
+            }
+        }
+
+        private void UpdateManifest()
+        {
+            var changed = false;
+            foreach (var plugin in Loader.Plugins.Where(x => x is IAutoUpdateablePlugin))
+            {
+                var manifest = this.GetPluginManifest(plugin);
+
+                if (!(manifest is null))
+                    continue;
+
+                manifest = CreatePluginManifest(plugin);
+                Log.Info($"[{manifest.PluginName}] Detected new plugin, adding to manifest");
+                changed = true;
+            }
+
+            if (!changed)
+                return;
+
+            ServerManifest.LastUpdateCheck = DateTime.Now;
+            SaveServerManifest();
+        }
+
+        [Obsolete("Only for Backwards Compatibility")]
+        private void HandleBackwardsCompatibility()
+        {
+            var changed = false;
+            foreach (var plugin in Loader.Plugins.OfType<IPlugin<IAutoUpdatableConfig>>())
+            {
+                var manifest = this.GetPluginManifest(plugin);
+
+                if (!(manifest is null))
+                    continue;
+
+                manifest = CreatePluginManifestBackwardsCompatible(plugin);
+                Log.Info($"[{manifest.PluginName}] Detected new plugin using Backwards Compatibility, adding to manifest");
+                changed = true;
+            }
+
+            if (!changed)
+                return;
+
+            ServerManifest.LastUpdateCheck = DateTime.Now;
+            SaveServerManifest();
+        }
+
+        private bool UpdateBasedOnManifest()
+        {
+            var changed = false;
+            foreach (var manifest in ServerManifest.Plugins.Values)
+            {
+                var plugin = Loader.Plugins.FirstOrDefault(x =>
+                    x.GetPluginName() == manifest.PluginName);
+                var pluginVersion = plugin?.Version;
+                string stringPluginVersion;
+                if (pluginVersion is null)
+                    stringPluginVersion = manifest.CurrentVersion;
+                else if (pluginVersion.Major == 1 && pluginVersion.Minor == 0 && pluginVersion.Build == 0)
                 {
-                    Log.Debug($"[{plugin.Name}] AutoUpdate is disabled", config.VerbouseOutput);
+                    stringPluginVersion = manifest.CurrentVersion;
+                    manifest.CurrentBuildId = $"{manifest.CurrentVersion}-manual-00000000";
+                }
+                else if (pluginVersion.Major >= 4)
+                    stringPluginVersion = plugin.Assembly.GetName().Version.ToString(3);
+                else
+                    stringPluginVersion = pluginVersion.ToString(3);
+
+                if (this.DoAutoUpdate(manifest, pluginVersion is null, stringPluginVersion) != Action.NONE)
+                    changed = true;
+            }
+
+            if (!changed)
+                return false;
+
+            ServerManifest.LastUpdateCheck = DateTime.Now;
+            SaveServerManifest();
+
+            return true;
+        }
+
+        internal Action DoAutoUpdate(PluginManifest pluginManifest, bool force, string pluginVersion, SourceType forcedConfig = SourceType.DISABLED, bool forceStable = false)
+        {
+            try
+            {
+                Log.Debug($"[{pluginManifest.PluginName}] Running AutoUpdate...", VerboseOutput);
+                if (string.IsNullOrWhiteSpace(pluginManifest.UpdateUrl) || pluginManifest.SourceType == SourceType.DISABLED)
+                {
+                    Log.Debug($"[{pluginManifest.PluginName}] AutoUpdate is disabled", VerboseOutput);
                     return Action.NONE;
                 }
 
-                Version pluginVersion = plugin.Version;
-
-                if (pluginVersion.Major >= 3)
-                    pluginVersion = plugin.Assembly.GetName().Version;
-
-                string fileVersion = string.Empty;
-                if (!force)
+                /*if (!force)
                 {
-                    fileVersion = File.ReadAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"));
-                    if (fileVersion.StartsWith("Dev: "))
-                        Log.Debug($"[{plugin.Name}] Detected Development build, skipping CurrentVersion check", config.VerbouseOutput);
-                    else
-                    {
-                        if (fileVersion != $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
-                        {
-                            Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {fileVersion} is downloaded, server will restart next round");
-                            ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                            return Action.RESTART;
-                        }
-                    }
-                }
+                    var res = CheckForUpdateAlreadyDownloaded(pluginManifest, pluginVersion);
+                    if (res.HasValue)
+                        return res.Value;
+                }*/
 
-                string newVersion;
-                if (forcedConfig == AutoUpdateType.DISABLED)
-                    forcedConfig = config.Type;
+                if (forcedConfig == SourceType.DISABLED)
+                    forcedConfig = pluginManifest.SourceType;
+
                 switch (forcedConfig)
                 {
-                    case AutoUpdateType.DISABLED:
+                    case SourceType.DISABLED:
                         return Action.NONE;
-                    case AutoUpdateType.GITHUB:
-                        Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing latest release", config.VerbouseOutput);
-                        try
+
+                    case SourceType.GITLAB:
+                    case SourceType.GITHUB:
+                    {
+                        Log.Debug($"[{pluginManifest.PluginName}] Checking for update using {forcedConfig}, Dev: {!forceStable && pluginManifest.Development}", VerboseOutput);
+                        var implementation = GetImplementation(forcedConfig);
+                        Action? result;
+                        if (!forceStable && pluginManifest.Development)
                         {
-                            var release = GitHub.Release.DownloadLatest(plugin, config);
-
-                            if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
-                            {
-                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                                return Action.NONE;
-                            }
-
-                            if (!force && release.Tag == fileVersion)
-                            {
-                                Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
-                                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                                return Action.RESTART;
-                            }
-
-                            foreach (var asset in release.Assets)
-                                asset.DownloadAsset(plugin, config);
-
-                            newVersion = release.Tag;
+                            result = this.UpdateDevelopment(
+                                implementation,
+                                pluginManifest,
+                                pluginVersion,
+                                force);
                         }
-                        catch (System.Exception ex)
+                        else
                         {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
-                            Log.Error(ex.StackTrace);
-                            return Action.NONE;
+                            result = UpdateStable(
+                                implementation,
+                                pluginManifest,
+                                pluginVersion,
+                                force);
                         }
 
+                        Log.Debug($"[{pluginManifest.PluginName}] Checked for update using {forcedConfig}, Result: {result?.ToString() ?? "CONTINUE"}", VerboseOutput);
+                        if (result.HasValue)
+                            return result.Value;
                         break;
+                    }
 
-                    case AutoUpdateType.GITHUB_DEVELOPMENT:
-                        Log.Debug($"[{plugin.Name}] Checking for update using GITHUB, chekcing for artifacts", config.VerbouseOutput);
-                        try
-                        {
-                            var artifacts = GitHub.Artifacts.Download(plugin, config);
-                            if (artifacts.ArtifactsArray.Length == 0)
-                            {
-                                Log.Debug($"[{plugin.Name}] No artifacts found, searching for Releases", config.VerbouseOutput);
-                                return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITHUB);
-                            }
-
-                            var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
-
-                            if (!force && "Dev: " + artifact.NodeId == fileVersion)
-                            {
-                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                                return Action.NONE;
-                            }
-
-                            artifact.Download(plugin, config);
-
-                            newVersion = "Dev: " + artifact.NodeId;
-                        }
-                        catch (System.Exception ex)
-                        {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
-                            Log.Error(ex.StackTrace);
-                            return Action.NONE;
-                        }
-
-                        break;
-
-                    case AutoUpdateType.GITLAB:
-                        Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for releases", config.VerbouseOutput);
-                        try
-                        {
-                            var releases = GitLab.Release.Download(plugin, config);
-                            if (releases.Length == 0)
-                            {
-                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: No releases found");
-                                return Action.NONE;
-                            }
-
-                            var release = releases[0];
-                            if (!force && release.Tag == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
-                            {
-                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                                return Action.NONE;
-                            }
-                            else
-                                Log.Debug($"[{plugin.Name}] Not up to date, Current: {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}, Newest: {release.Tag}", config.VerbouseOutput);
-
-                            if (!force && release.Tag == fileVersion)
-                            {
-                                Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
-                                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                                return Action.RESTART;
-                            }
-
-                            foreach (var link in release.Assets.Links)
-                                link.Download(plugin, config);
-
-                            newVersion = release.Tag;
-                        }
-                        catch (System.Exception ex)
-                        {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
-                            Log.Error(ex.StackTrace);
-                            return Action.NONE;
-                        }
-
-                        break;
-
-                    case AutoUpdateType.GITLAB_DEVELOPMENT:
-                        Log.Debug($"[{plugin.Name}] Checking for update using GITLAB, chekcing for artifacts", config.VerbouseOutput);
-                        try
-                        {
-                            var jobs = GitLab.Job.Download(plugin, config);
-                            if (jobs.Where(x => x.ArtifactsFile.HasValue).Count() == 0)
-                            {
-                                Log.Debug($"[{plugin.Name}] No jobs found, searching for releases", config.VerbouseOutput);
-                                return this.DoAutoUpdate(plugin, force, AutoUpdateType.GITLAB);
-                            }
-
-                            var job = jobs.First(x => x.ArtifactsFile.HasValue);
-                            if (!force && "Dev: " + job.Commit.ShortId == fileVersion)
-                            {
-                                Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
-                                return Action.NONE;
-                            }
-
-                            job.DownloadArtifacts(plugin, config);
-
-                            newVersion = "Dev: " + job.Commit.ShortId;
-                        }
-                        catch (System.Exception ex)
-                        {
-                            Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
-                            Log.Error(ex.StackTrace);
-                            return Action.NONE;
-                        }
-
-                        break;
-                    case AutoUpdateType.HTTP:
-                        Log.Debug($"[{plugin.Name}] Checking for update using HTTP, chekcing for releases", config.VerbouseOutput);
-                        using (WebClient client = new WebClient())
+                    case SourceType.HTTP:
+                    {
+                        Log.Debug($"[{pluginManifest.PluginName}] Checking for update using HTTP, checking for releases", VerboseOutput);
+                        using (var client = new WebClient())
                         {
                             try
                             {
-                                Manifest manifest = JsonConvert.DeserializeObject<Manifest>(client.DownloadString($"{config.Url}/manifest.json"));
-                                if (!force && manifest.Version == $"{pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build}")
+                                var manifest =
+                                    JsonConvert.DeserializeObject<Manifest>(
+                                        client.DownloadString($"{pluginManifest.UpdateUrl}/manifest.json"));
+                                if (!force && manifest.Version == pluginVersion)
                                 {
-                                    Log.Debug($"[{plugin.Name}] Up to date", config.VerbouseOutput);
+                                    Log.Debug($"[{pluginManifest.PluginName}] Up to date", VerboseOutput);
                                     return Action.NONE;
                                 }
-                                else if (!force && manifest.Version == fileVersion)
+
+                                if (!force && manifest.Version == pluginManifest.CurrentVersion)
                                 {
-                                    Log.Info($"[{plugin.Name}] Update already downloaded, waiting for server restart");
+                                    Log.Info(
+                                        $"[{pluginManifest.PluginName}] Update already downloaded, waiting for server restart");
                                     ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                                     return Action.RESTART;
                                 }
 
-                                client.DownloadFile($"{config.Url}/{manifest.PluginName}", Path.Combine(Paths.Plugins, manifest.PluginName));
-                                newVersion = manifest.Version;
+                                client.DownloadFile(
+                                    $"{pluginManifest.UpdateUrl}/{manifest.PluginName}",
+                                    Path.Combine(Paths.Plugins, manifest.PluginName));
+
+                                pluginManifest.UpdatePlugin(manifest);
                             }
                             catch (Exception ex)
                             {
-                                Log.Error($"[{plugin.Name}] AutoUpdate Failed: {ex.Message}");
+                                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {ex.Message}");
                                 Log.Error(ex.StackTrace);
                                 return Action.NONE;
                             }
                         }
 
                         break;
+                    }
+
                     default:
-                        throw new ArgumentOutOfRangeException("AutoUpdateType", $"Unknown AutoUpdateType ({config.Type})");
+                        throw new ArgumentOutOfRangeException(
+                            nameof(SourceType),
+                            $"Unknown SourceType ({pluginManifest.UpdateUrl})");
                 }
 
-                File.WriteAllText(Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.txt"), newVersion);
                 Exiled.Events.Handlers.Server.RestartingRound -= this.Server_RestartingRound;
                 ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                Log.Info($"[{plugin.Name}] Update from {pluginVersion.Major}.{pluginVersion.Minor}.{pluginVersion.Build} to {newVersion} downloaded, server will restart next round");
+                Log.Info($"[{pluginManifest.PluginName}] Update from {pluginVersion} to {pluginManifest.CurrentVersion} downloaded, server will restart next round");
                 return Action.UPDATE_AND_RESTART;
             }
             catch (WebException ex)
             {
-                Log.Error($"[{plugin.Name}] AutoUpdate thrown web exception, your config may be invalid:");
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate thrown web exception, your config may be invalid:");
                 Log.Error(ex);
                 return Action.NONE;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                Log.Error($"[{plugin.Name}] AutoUpdate thrown exception:");
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate thrown exception:");
                 Log.Error(ex);
                 return Action.NONE;
             }
         }
 
-        private bool ignoreRestartingRound = false;
+        private static void RestartServer()
+        {
+            IdleMode.PauseIdleMode = true;
+            Mirror.NetworkServer.SendToAll(new RoundRestartMessage(
+                RoundRestartType.FullRestart,
+                GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25),
+                0,
+                true,
+                true));
+            MEC.Timing.CallDelayed(1, Server.Restart);
+        }
+
+        private static PluginManifest CreatePluginManifest(IPlugin<IConfig> plugin)
+        {
+            if (!(plugin is IAutoUpdateablePlugin autoUpdateablePlugin))
+                throw new ArgumentException($"Expected {nameof(IAutoUpdateablePlugin)}", nameof(plugin));
+
+            Log.Debug($"[{plugin.GetPluginName()}] Creating Plugin Manifest", VerboseOutput);
+            var tor = new PluginManifest(autoUpdateablePlugin);
+
+            ServerManifest.Plugins.Add(tor.PluginName, tor);
+
+            return tor;
+        }
+
+        [Obsolete("Only for Backwards Compatibility")]
+        private static PluginManifest CreatePluginManifestBackwardsCompatible(IPlugin<IAutoUpdatableConfig> plugin)
+        {
+            Log.Debug($"[{plugin.GetPluginName()}] Creating Plugin Manifest with Backwards Compatibility", VerboseOutput);
+            var tor = new PluginManifest
+            {
+                PluginName = plugin.GetPluginName(),
+                UpdateUrl = plugin.Config.AutoUpdateConfig.TryGetValue("Url", out var url) ? url : null,
+                SourceType = plugin.Config.AutoUpdateConfig
+                    .TryGetValue("Type", out var type)
+                    ? Enum.TryParse<SourceType>(type.Split('_')[0], out var sourceType)
+                        ? sourceType
+                        : SourceType.DISABLED
+                    : SourceType.DISABLED,
+            };
+
+            ServerManifest.Plugins.Add(tor.PluginName, tor);
+
+            return tor;
+        }
+
+        private static void SaveServerManifest()
+        {
+            Log.Debug("Saving Server Manifest...", VerboseOutput);
+            var path = Path.Combine(Paths.Plugins, "AutoUpdater");
+
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            path = Path.Combine(path, "manifest.json");
+
+            File.WriteAllText(path, JsonConvert.SerializeObject(ServerManifest, Formatting.Indented));
+            Log.Debug("Saved Server Manifest", VerboseOutput);
+        }
+
+        private static bool LoadServerManifest()
+        {
+            Log.Debug("Loading Server Manifest...", VerboseOutput);
+            try
+            {
+                var path = Path.Combine(Paths.Plugins, "AutoUpdater");
+
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+
+                path = Path.Combine(path, "manifest.json");
+
+                if (!File.Exists(path))
+                {
+                    ServerManifest = new ServerManifest();
+
+                    SaveServerManifest();
+
+                    return false;
+                }
+
+                var newManifest = JsonConvert.DeserializeObject<ServerManifest>(File.ReadAllText(path));
+                newManifest.ApplyTokens();
+
+                if (ServerManifest != null && ServerManifest.LastUpdateCheck != newManifest.LastUpdateCheck)
+                {
+                    Log.Info("Manifest had changed since it was read, requesting server restart ...");
+                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                    ServerManifest = newManifest;
+                    return true;
+                }
+
+                ServerManifest = newManifest;
+
+                Log.Debug("Loaded Server Manifest", VerboseOutput);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Exception when loading Server Manifest");
+                Log.Error(ex);
+
+                throw;
+            }
+        }
+
+        private static IImplementation GetImplementation(SourceType type)
+        {
+            switch (type)
+            {
+                case SourceType.GITHUB:
+                    return new GitHub();
+
+                case SourceType.GITLAB:
+                    return new GitLab();
+
+                case SourceType.DISABLED:
+                case SourceType.HTTP:
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private static Action? UpdateStable(
+            IImplementation implementation,
+            PluginManifest pluginManifest,
+            string pluginVersion,
+            bool force)
+        {
+            try
+            {
+                Log.Debug($"[{pluginManifest.PluginName}] Checking for update", VerboseOutput);
+                var release = ReleaseUtil.DownloadLatest(implementation, pluginManifest);
+
+                if (!force && release.Tag == pluginVersion)
+                {
+                    Log.Debug($"[{pluginManifest.PluginName}] Up to date", VerboseOutput);
+                    return Action.NONE;
+                }
+
+                Log.Debug(
+                    $"[{pluginManifest.PluginName}] Not up to date, Current: {pluginVersion}, Newest: {release.Tag}",
+                    VerboseOutput);
+
+                if (!force && release.Tag == pluginManifest.CurrentVersion)
+                {
+                    Log.Info($"[{pluginManifest.PluginName}] Update already downloaded, waiting for server restart");
+                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                    return Action.RESTART;
+                }
+
+                foreach (var asset in release.Assets)
+                    ReleaseUtil.DownloadAsset(implementation, asset, pluginManifest);
+
+                pluginManifest.UpdatePlugin(release);
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {ex.Message}");
+                Log.Error(ex.StackTrace);
+                return Action.NONE;
+            }
+        }
+
+        private bool ignoreRestartingRound;
+
+        private Action? UpdateDevelopment(
+            IImplementation implementation,
+            PluginManifest pluginManifest,
+            string pluginVersion,
+            bool force)
+        {
+            try
+            {
+                var res = implementation.DownloadArtifact(pluginManifest, force);
+
+                return res == Action.UPDATE_AND_RESTART ? this.DoAutoUpdate(pluginManifest, force, pluginVersion, forceStable: true) : res;
+            }
+            catch (WebException ex)
+            {
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: WebException");
+                Log.Error(ex.Status + ": " + ex.Response);
+                Log.Error(ex);
+
+                return Action.NONE;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: Exception");
+                Log.Error(ex);
+
+                return Action.NONE;
+            }
+        }
 
         private void Server_RestartingRound()
         {
             if (this.ignoreRestartingRound)
                 return;
+
             if (ServerStatic.StopNextRound != ServerStatic.NextRoundAction.DoNothing)
                 return;
 
             MEC.Timing.CallDelayed(5f, () =>
             {
                 if (this.DoAutoUpdates())
-                {
                     this.ignoreRestartingRound = true;
-
-                    // Due to CallDelayed this will not work
-                    /*Server.Host.ReferenceHub.playerStats.RpcRoundrestart((float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), true);
-                    IdleMode.PauseIdleMode = true;
-                    MEC.Timing.CallDelayed(1, () => Server.Restart());*/
-                }
             });
         }
 

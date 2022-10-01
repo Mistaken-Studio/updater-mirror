@@ -7,100 +7,108 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using Exiled.API.Features;
-using Exiled.API.Interfaces;
+using Mistaken.Updater.API.Abstract;
 using Mistaken.Updater.Config;
+using Mistaken.Updater.Internal;
 using Newtonsoft.Json;
 
 namespace Mistaken.Updater.API
 {
-    internal class GitHub
+    internal class GitHub : IImplementation
     {
-        internal class Release
+        public Type ReleaseType => typeof(Release);
+
+        public string UrlSuffix => "/releases/latest";
+
+        public void AddHeaders(WebClient client, PluginManifest pluginManifest)
         {
-            public static Release DownloadLatest(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            if (!string.IsNullOrWhiteSpace(pluginManifest.Token))
+                client.Headers.Add($"Authorization: token {pluginManifest.Token}");
+
+            client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
+        }
+
+        public AutoUpdater.Action? DownloadArtifact(PluginManifest pluginManifest, bool force)
+        {
+            try
             {
-                using (var client = new WebClient())
+                var artifacts = Artifacts.Download(this, pluginManifest);
+                if (artifacts.ArtifactsArray.Length == 0)
                 {
-                    if (!string.IsNullOrWhiteSpace(config.Token))
-                        client.Headers.Add($"Authorization: token {config.Token}");
-                    client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    string releaseUrl = config.Url + "/releases/latest";
-                    var rawResult = client.DownloadString(releaseUrl);
-                    if (rawResult == string.Empty)
-                    {
-                        Log.Error($"[{plugin.Name}] AutoUpdate Failed: AutoUpdate URL returned empty page");
-                        return null;
-                    }
-
-                    return Newtonsoft.Json.JsonConvert.DeserializeObject<GitHub.Release>(rawResult);
+                    Log.Debug($"[{pluginManifest.PluginName}] No artifacts found, searching for Releases", AutoUpdater.VerboseOutput);
+                    return AutoUpdater.Action.UPDATE_AND_RESTART;
                 }
-            }
 
+                var artifact = artifacts.ArtifactsArray.OrderByDescending(x => x.Id).First();
+
+                if (!force && artifact.NodeId == pluginManifest.CurrentVersion)
+                {
+                    Log.Debug($"[{pluginManifest.PluginName}] Up to date", AutoUpdater.VerboseOutput);
+                    return AutoUpdater.Action.NONE;
+                }
+
+                artifact.Download(this, pluginManifest);
+
+                pluginManifest.UpdatePlugin("0.0.0", artifact.NodeId, artifact.WorkflowRunField?.HeadBranch ?? "unknown");
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {ex.Message}");
+                Log.Error(ex.StackTrace);
+                return AutoUpdater.Action.NONE;
+            }
+        }
+
+        internal class Release : IRelease<Asset, Commit>
+        {
             [JsonProperty("tag_name")]
             public string Tag { get; set; }
 
             [JsonProperty("assets")]
             public Asset[] Assets { get; set; }
+
+            public Commit Commit => new Commit { ShortId = this.NodeId };
+
+            [JsonProperty("node_id")]
+            public string NodeId { get; set; }
         }
 
-        internal class Asset
+        internal class Asset : IAsset
         {
             [JsonProperty("url")]
             public string Url { get; set; }
 
             [JsonProperty("name")]
             public string Name { get; set; }
+        }
 
-            public void DownloadAsset(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
-            {
-                Log.Debug($"[{plugin.Name}] Downloading |" + this.Url, config.VerbouseOutput);
-                using (var client2 = new WebClient())
-                {
-                    if (!string.IsNullOrWhiteSpace(config.Token))
-                        client2.Headers.Add($"Authorization: token {config.Token}");
-                    client2.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
-                    string name = this.Name;
-                    if (name.StartsWith("Dependencie-"))
-                    {
-                        name = name.Substring(12);
-                        string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                        client2.DownloadFile(this.Url, path);
-                        File.Copy(path, Path.Combine(Paths.Dependencies, name), true);
-                        File.Delete(path);
-                    }
-                    else
-                    {
-                        string path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                        client2.DownloadFile(this.Url, path);
-                        File.Copy(path, Path.Combine(Paths.Plugins, name), true);
-                        File.Delete(path);
-                    }
-                }
-            }
+        internal class Commit : ICommit
+        {
+            [JsonProperty("short_id")]
+            public string ShortId { get; set; }
         }
 
         internal class Artifacts
         {
-            public static Artifacts Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
+            public static Artifacts Download(IImplementation implementation, PluginManifest pluginManifest)
             {
                 using (var client = new WebClient())
                 {
-                    if (!string.IsNullOrWhiteSpace(config.Token))
-                        client.Headers.Add($"Authorization: token {config.Token}");
-                    client.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    string artifactsUrl = config.Url + "/actions/artifacts";
+                    implementation.AddHeaders(client, pluginManifest);
+                    string artifactsUrl = pluginManifest.UpdateUrl + "/actions/artifacts";
                     var rawResult = client.DownloadString(artifactsUrl);
                     if (rawResult == string.Empty)
                     {
-                        Log.Error($"[{plugin.Name}] AutoUpdate Failed: {artifactsUrl} returned empty page");
+                        Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {artifactsUrl} returned empty page");
                         return null;
                     }
 
-                    return Newtonsoft.Json.JsonConvert.DeserializeObject<GitHub.Artifacts>(rawResult);
+                    return JsonConvert.DeserializeObject<Artifacts>(rawResult);
                 }
             }
 
@@ -119,60 +127,35 @@ namespace Mistaken.Updater.API
             [JsonProperty("node_id")]
             public string NodeId { get; set; }
 
-            public void Download(IPlugin<IAutoUpdatableConfig> plugin, AutoUpdateConfig config)
-            {
-                Log.Debug($"[{plugin.Name}] Downloading |" + this.DownloadUrl, config.VerbouseOutput);
-                using (var client2 = new WebClient())
-                {
-                    if (!string.IsNullOrWhiteSpace(config.Token))
-                        client2.Headers.Add($"Authorization: token {config.Token}");
-                    client2.Headers.Add(HttpRequestHeader.UserAgent, "MistakenPluginUpdater");
-                    client2.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
-                    string path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.zip");
-                    client2.DownloadFile(this.DownloadUrl, path);
+            [JsonProperty("workflow_run")]
+            public WorkflowRun WorkflowRunField { get; set; }
 
-                    string extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{plugin.Author}.{plugin.Name}.artifacts.extracted");
+            public void Download(IImplementation implementation, PluginManifest pluginManifest)
+            {
+                Log.Debug($"[{pluginManifest.PluginName}] Downloading artifact from " + this.DownloadUrl, AutoUpdater.VerboseOutput);
+                using (var client = new WebClient())
+                {
+                    var extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.extracted");
+                    var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
+
+                    implementation.AddHeaders(client, pluginManifest);
+                    client.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
+
+                    client.DownloadFile(this.DownloadUrl, path);
+
                     ZipFile.ExtractToDirectory(path, extractedPath);
                     File.Delete(path);
-                    string baseExtractedPath = extractedPath;
-                    while (true)
-                    {
-                        Log.Debug($"[{plugin.Name}] Scanning {extractedPath} for files", config.VerbouseOutput);
-                        var files = Directory.GetFiles(extractedPath, "*.dll");
-                        if (files.Length != 0)
-                        {
-                            Log.Debug($"[{plugin.Name}] Found files in {extractedPath}", config.VerbouseOutput);
-                            foreach (var file in files)
-                            {
-                                string name = Path.GetFileName(file);
-                                string targetPath;
-                                if (name.StartsWith("Dependencie-"))
-                                {
-                                    name = name.Substring(12);
-                                    targetPath = Path.Combine(Paths.Dependencies, name);
-                                }
-                                else
-                                    targetPath = Path.Combine(Paths.Plugins, name);
 
-                                Log.Debug($"[{plugin.Name}] Copping {file} to {targetPath}", config.VerbouseOutput);
-                                File.Copy(file, targetPath, true);
-                            }
+                    ReleaseUtil.MoveFiles(pluginManifest, extractedPath);
 
-                            break;
-                        }
-
-                        var directories = Directory.GetDirectories(extractedPath);
-                        if (directories.Length == 0)
-                        {
-                            Log.Error($"[{plugin.Name}] Artifact is empty");
-                            return;
-                        }
-
-                        extractedPath = directories[0];
-                    }
-
-                    Directory.Delete(baseExtractedPath, true);
+                    Directory.Delete(extractedPath, true);
                 }
+            }
+
+            public class WorkflowRun
+            {
+                [JsonProperty("head_branch")]
+                public string HeadBranch { get; set; }
             }
         }
     }

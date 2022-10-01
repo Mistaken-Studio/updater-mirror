@@ -5,27 +5,22 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CommandSystem;
 using Exiled.API.Features;
-using Exiled.API.Interfaces;
-using Mistaken.Updater.Config;
 using RoundRestarting;
 
 namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc/>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    [CommandHandler(typeof(GameConsoleCommandHandler))]
     public class AutoUpdateCommand : ICommand
     {
         /// <inheritdoc/>
         public string Command => "autoupdate";
 
         /// <inheritdoc/>
-        public string[] Aliases => new string[] { "update" };
+        public string[] Aliases => new[] { "update" };
 
         /// <inheritdoc/>
         public string Description => "Forces Auto Update";
@@ -36,48 +31,24 @@ namespace Mistaken.Updater.Internal
             if (!sender.CheckPermission(PlayerPermissions.ServerConsoleCommands, out response))
                 return false;
 
-            if (arguments.Count == 0)
+            if (AutoUpdater.Instance.DoAutoUpdates())
             {
-                response = "Missing argument \"plugin\"\nAutoUpdate [plugin]";
-                return false;
-            }
-
-            string pluginName = arguments.Array[arguments.Offset].ToLower();
-
-            if (pluginName == "*")
-            {
-                if (AutoUpdater.Instance.DoAutoUpdates())
-                {
-                    Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
-                    IdleMode.PauseIdleMode = true;
-                    MEC.Timing.CallDelayed(1, () => Server.Restart());
-                    response = "Restarting";
-                    return true;
-                }
-                else
-                {
-                    response = "No need to restart";
-                    return false;
-                }
-            }
-
-            var plugin = Exiled.Loader.Loader.Plugins.Where(x => x.Config is IAutoUpdatableConfig).Select(x => x as IPlugin<IAutoUpdatableConfig>).FirstOrDefault(x => x.Name.ToLower() == pluginName || x.Prefix.ToLower() == pluginName);
-
-            if (plugin == null)
-            {
-                response = $"Plugin with name \"{pluginName}\" not found";
-                return false;
-            }
-
-            if (AutoUpdater.Instance.DoAutoUpdate(plugin, false) != AutoUpdater.Action.NONE)
-            {
-                Mirror.NetworkServer.SendToAll<RoundRestartMessage>(new RoundRestartMessage(RoundRestartType.FullRestart, (float)GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25), 0, true, true));
+                Mirror.NetworkServer.SendToAll(new RoundRestartMessage(
+                    RoundRestartType.FullRestart,
+                    GameCore.ConfigFile.ServerConfig.GetInt("full_restart_rejoin_time", 25),
+                    0,
+                    true,
+                    true));
                 IdleMode.PauseIdleMode = true;
-                MEC.Timing.CallDelayed(1, () => Server.Restart());
+                MEC.Timing.CallDelayed(1, Server.Restart);
+                response = "Restarting";
+                return true;
             }
-
-            response = $"Updated {plugin.Author}.{plugin.Name}";
-            return true;
+            else
+            {
+                response = "No need to restart";
+                return false;
+            }
         }
     }
 }
