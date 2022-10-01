@@ -11,11 +11,9 @@ using System.Linq;
 using System.Net;
 using Exiled.API.Features;
 using Mistaken.Updater.API.Abstract;
-using Mistaken.Updater.Config;
-using Mistaken.Updater.Internal;
 using Newtonsoft.Json;
 
-namespace Mistaken.Updater.API
+namespace Mistaken.Updater.API.Implementations
 {
     internal class GitHub : IImplementation
     {
@@ -146,7 +144,7 @@ namespace Mistaken.Updater.API
                     ZipFile.ExtractToDirectory(path, extractedPath);
                     File.Delete(path);
 
-                    ReleaseUtil.MoveFiles(pluginManifest, extractedPath);
+                    Internal.Utils.MoveFiles(pluginManifest, extractedPath);
 
                     Directory.Delete(extractedPath, true);
                 }

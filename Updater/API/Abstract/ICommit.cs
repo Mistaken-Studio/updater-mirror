@@ -1,4 +1,10 @@
-﻿namespace Mistaken.Updater.API.Abstract
+﻿// -----------------------------------------------------------------------
+// <copyright file="ICommit.cs" company="Mistaken">
+// Copyright (c) Mistaken. All rights reserved.
+// </copyright>
+// -----------------------------------------------------------------------
+
+namespace Mistaken.Updater.API.Abstract
 {
     internal interface ICommit
     {

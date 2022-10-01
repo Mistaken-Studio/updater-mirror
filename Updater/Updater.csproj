@@ -63,26 +63,26 @@
     <Compile Include="API\Abstract\ICommit.cs" />
     <Compile Include="API\Abstract\IImplementation.cs" />
     <Compile Include="API\Abstract\IRelease.cs" />
-    <Compile Include="API\ReleaseUtil.cs" />
+    <Compile Include="Internal\Utils.cs" />
     <Compile Include="API\Manifest.cs" />
-    <Compile Include="Config\AutoUpdateConfig.cs" />
-    <Compile Include="Config\PluginManifest.cs" />
-    <Compile Include="Config\ServerManifest.cs" />
+    <Compile Include="AutoUpdater.cs" />
+    <Compile Include="API\Config\AutoUpdateConfig.cs" />
+    <Compile Include="API\PluginManifest.cs" />
+    <Compile Include="Internal\ServerManifest.cs" />
     <Compile Include="Internal\AutoUpdater.cs" />
     <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
-    <Compile Include="Config\SourceType.cs" />
-    <Compile Include="Config\AutoUpdateType.cs" />
+    <Compile Include="API\Config\SourceType.cs" />
+    <Compile Include="API\Config\Obsolete\AutoUpdateType.cs" />
     <Compile Include="Internal\AutoUpdateCommand.cs" />
-    <Compile Include="API\GitHub.cs" />
-    <Compile Include="API\GitLab.cs" />
-    <Compile Include="Config\IAutoUpdateablePlugin.cs" />
+    <Compile Include="API\Implementations\GitHub.cs" />
+    <Compile Include="API\Implementations\GitLab.cs" />
+    <Compile Include="API\Config\IAutoUpdateablePlugin.cs" />
     <Compile Include="Internal\Extensions.cs" />
-    <Compile Include="Config\IAutoUpdatableConfig.cs" />
+    <Compile Include="API\Config\Obsolete\IAutoUpdatableConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="app.config" />
     <None Include="packages.config" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
@@ -90,7 +90,9 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Manifest\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>

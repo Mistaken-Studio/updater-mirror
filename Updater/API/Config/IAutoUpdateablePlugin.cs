@@ -6,7 +6,7 @@
 
 using Exiled.API.Interfaces;
 
-namespace Mistaken.Updater.Config
+namespace Mistaken.Updater.API.Config
 {
     /// <summary>
     /// <see cref="IConfig"/> but with fields required for AutoUpdates.

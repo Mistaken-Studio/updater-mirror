@@ -7,26 +7,18 @@
 using System;
 using System.Collections.Generic;
 using Exiled.API.Features;
+using Mistaken.Updater.API;
 using Newtonsoft.Json;
 
-namespace Mistaken.Updater.Config
+namespace Mistaken.Updater.Internal
 {
-    /// <summary>
-    /// Server Manifest.
-    /// </summary>
-    public class ServerManifest
+    internal class ServerManifest
     {
-        /// <summary>
-        /// Gets Plugins.
-        /// </summary>
         [JsonProperty("Plugins")]
-        public Dictionary<string, PluginManifest> Plugins { get; private set; } = new Dictionary<string, PluginManifest>();
+        internal Dictionary<string, PluginManifest> Plugins { get; private set; } = new Dictionary<string, PluginManifest>();
 
-        /// <summary>
-        /// Gets last update check time.
-        /// </summary>
         [JsonProperty("LastUpdateCheck")]
-        public DateTime? LastUpdateCheck { get; internal set; }
+        internal DateTime? LastUpdateCheck { get; set; }
 
         [JsonProperty("Tokens")]
         internal Dictionary<string, string> Tokens { get; set; } = new Dictionary<string, string>();

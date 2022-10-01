@@ -10,7 +10,7 @@ using Exiled.API.Interfaces;
 namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc/>
-    public class AutoUpdaterPluginConfig : IConfig
+    internal class AutoUpdaterPluginConfig : IConfig
     {
         /// <inheritdoc/>
         public bool IsEnabled { get; set; } = true;

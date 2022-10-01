@@ -6,8 +6,6 @@
 
 using System;
 using System.Net;
-using Mistaken.Updater.Config;
-using Mistaken.Updater.Internal;
 
 namespace Mistaken.Updater.API.Abstract
 {

@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="ReleaseUtil.cs" company="Mistaken">
+// <copyright file="Utils.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -8,14 +8,14 @@ using System;
 using System.IO;
 using System.Net;
 using Exiled.API.Features;
+using Mistaken.Updater.API;
 using Mistaken.Updater.API.Abstract;
-using Mistaken.Updater.Config;
-using Mistaken.Updater.Internal;
+using Mistaken.Updater.API.Implementations;
 using Newtonsoft.Json;
 
-namespace Mistaken.Updater.API
+namespace Mistaken.Updater.Internal
 {
-    internal static class ReleaseUtil
+    internal static class Utils
     {
         public static IRelease<IAsset, ICommit> DownloadLatest(
             IImplementation implementation,
@@ -27,7 +27,7 @@ namespace Mistaken.Updater.API
 
                 var releaseUrl = pluginManifest.UpdateUrl + implementation.UrlSuffix;
 
-                Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", AutoUpdater.VerboseOutput);
+                Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", Updater.AutoUpdater.VerboseOutput);
                 var rawResult = client.DownloadString(releaseUrl);
 
                 if (rawResult != string.Empty)
@@ -62,7 +62,7 @@ namespace Mistaken.Updater.API
             IAsset asset,
             PluginManifest pluginManifest)
         {
-            Log.Debug($"[{pluginManifest.PluginName}] Downloading asset from " + asset.Url, AutoUpdater.VerboseOutput);
+            Log.Debug($"[{pluginManifest.PluginName}] Downloading asset from " + asset.Url, Updater.AutoUpdater.VerboseOutput);
             using (var client = new WebClient())
             {
                 implementation.AddHeaders(client, pluginManifest);
@@ -89,7 +89,7 @@ namespace Mistaken.Updater.API
                 File.Copy(path, outputPath, true);
                 File.Delete(path);
 
-                Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, AutoUpdater.VerboseOutput);
+                Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, Updater.AutoUpdater.VerboseOutput);
             }
         }
 
@@ -97,11 +97,11 @@ namespace Mistaken.Updater.API
         {
             while (true)
             {
-                Log.Debug($"[{pluginManifest.PluginName}] Scanning {extractedPath} for files", AutoUpdater.VerboseOutput);
+                Log.Debug($"[{pluginManifest.PluginName}] Scanning {extractedPath} for files", Updater.AutoUpdater.VerboseOutput);
                 var files = Directory.GetFiles(extractedPath, "*.dll");
                 if (files.Length != 0)
                 {
-                    Log.Debug($"[{pluginManifest.PluginName}] Found files in {extractedPath}", AutoUpdater.VerboseOutput);
+                    Log.Debug($"[{pluginManifest.PluginName}] Found files in {extractedPath}", Updater.AutoUpdater.VerboseOutput);
                     foreach (var file in files)
                     {
                         string name = Path.GetFileName(file);
@@ -114,7 +114,7 @@ namespace Mistaken.Updater.API
                         else
                             targetPath = Path.Combine(Paths.Plugins, name);
 
-                        Log.Debug($"[{pluginManifest.PluginName}] Copping {file} to {targetPath}", AutoUpdater.VerboseOutput);
+                        Log.Debug($"[{pluginManifest.PluginName}] Copping {file} to {targetPath}", Updater.AutoUpdater.VerboseOutput);
                         File.Copy(file, targetPath, true);
                     }
 

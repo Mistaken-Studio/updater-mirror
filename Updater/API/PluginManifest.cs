@@ -6,8 +6,8 @@
 
 using System;
 using Exiled.API.Interfaces;
-using Mistaken.Updater.API;
 using Mistaken.Updater.API.Abstract;
+using Mistaken.Updater.API.Config;
 using Mistaken.Updater.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -15,7 +15,7 @@ using Newtonsoft.Json.Converters;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Local
-namespace Mistaken.Updater.Config
+namespace Mistaken.Updater.API
 {
     /// <summary>
     /// Plugin Manifest.

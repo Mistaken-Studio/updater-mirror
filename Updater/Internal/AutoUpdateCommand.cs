@@ -14,9 +14,10 @@ namespace Mistaken.Updater.Internal
     /// <inheritdoc/>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     [CommandHandler(typeof(GameConsoleCommandHandler))]
-    public class AutoUpdateCommand : ICommand
+    internal class AutoUpdateCommand : ICommand
     {
         /// <inheritdoc/>
+        // ReSharper disable once StringLiteralTypo
         public string Command => "autoupdate";
 
         /// <inheritdoc/>
@@ -31,7 +32,7 @@ namespace Mistaken.Updater.Internal
             if (!sender.CheckPermission(PlayerPermissions.ServerConsoleCommands, out response))
                 return false;
 
-            if (AutoUpdater.Instance.DoAutoUpdates())
+            if (Updater.AutoUpdater.DoAutoUpdates())
             {
                 Mirror.NetworkServer.SendToAll(new RoundRestartMessage(
                     RoundRestartType.FullRestart,
