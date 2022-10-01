@@ -133,7 +133,6 @@ namespace Mistaken.Updater.API.Implementations
 
                     Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {jobsUrl} returned empty page");
                     return null;
-
                 }
             }
 
