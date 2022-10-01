@@ -43,5 +43,27 @@ namespace Mistaken.Updater.Internal
                 }
             }
         }
+
+        internal void UnApplyTokens()
+        {
+            if (this.Tokens is null)
+            {
+                Log.Warn("ServerManifest Tokens are null, resetting ...");
+                this.Tokens = new Dictionary<string, string>();
+                return;
+            }
+
+            foreach (var token in this.Tokens)
+            {
+                foreach (var manifest in this.Plugins.Values)
+                {
+                    var tokenKey = $"${token.Key}";
+                    if (manifest.UpdateUrl?.Contains(token.Value) ?? false)
+                        manifest.UpdateUrl = manifest.UpdateUrl.Replace(token.Value, tokenKey);
+                    if (manifest.Token?.Contains(token.Value) ?? false)
+                        manifest.Token = manifest.Token.Replace(token.Value, tokenKey);
+                }
+            }
+        }
     }
 }

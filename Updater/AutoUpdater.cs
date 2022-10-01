@@ -264,7 +264,9 @@ namespace Mistaken.Updater
 
             path = Path.Combine(path, "manifest.json");
 
+            ServerManifest.UnApplyTokens();
             File.WriteAllText(path, JsonConvert.SerializeObject(ServerManifest, Formatting.Indented));
+            ServerManifest.ApplyTokens();
             Log.Debug("Saved Server Manifest", VerboseOutput);
         }
 

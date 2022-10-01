@@ -23,35 +23,45 @@ namespace Mistaken.Updater.API
     public class PluginManifest
     {
         /// <summary>
-        /// Gets Plugin Name.
+        /// Gets or sets plugin Name.
         /// </summary>
-        public string PluginName { get; internal set; }
+        public string PluginName { get; set; }
 
         /// <summary>
-        /// Gets Current Version.
+        /// Gets or sets current Version.
         /// </summary>
-        public string CurrentVersion { get; private set; }
+        public string CurrentVersion { get; set; }
 
         /// <summary>
-        /// Gets Current Build Id.
+        /// Gets or sets current Build Id.
         /// </summary>
-        public string CurrentBuildId { get; internal set; }
+        public string CurrentBuildId { get; set; }
 
         /// <summary>
-        /// Gets Update Time.
+        /// Gets or sets update Time.
         /// </summary>
-        public DateTime? UpdateTime { get; private set; }
+        public DateTime? UpdateTime { get; set; }
 
         /// <summary>
-        /// Gets Source Type.
+        /// Gets or sets source Type.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
-        public SourceType SourceType { get; internal set; }
+        public SourceType SourceType { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether development version should be downloaded.
+        /// Gets or sets a value indicating whether development version should be downloaded.
         /// </summary>
-        public bool Development { get; private set; }
+        public bool Development { get; set; }
+
+        /// <summary>
+        /// Gets or sets update Url.
+        /// </summary>
+        public string UpdateUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets token.
+        /// </summary>
+        public string Token { get; set; }
 
         internal PluginManifest(IAutoUpdateablePlugin p)
         {
@@ -66,10 +76,6 @@ namespace Mistaken.Updater.API
         internal PluginManifest()
         {
         }
-
-        internal string UpdateUrl { get; set; }
-
-        internal string Token { get; set; }
 
         internal void UpdatePlugin(Manifest manifest)
         {
