@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -24,6 +25,7 @@ using RoundRestarting;
 
 #pragma warning disable CS0618
 
+// ReSharper disable MemberCanBePrivate.Global
 namespace Mistaken.Updater
 {
     /// <inheritdoc cref="IPlugin{TConfig}"/>
@@ -42,9 +44,7 @@ namespace Mistaken.Updater
             return ServerManifest.Plugins.TryGetValue(name, out var manifest) ? manifest : null;
         }
 
-        internal static bool VerboseOutput => Internal.AutoUpdater.Instance.Config.VerboseOutput;
-
-        internal static ServerManifest ServerManifest { get; private set; }
+        internal static bool VerboseOutput => AutoUpdaterPlugin.Instance.Config.VerboseOutput;
 
         internal static void Initialize()
         {
@@ -88,7 +88,19 @@ namespace Mistaken.Updater
             }
         }
 
-        internal static Action DoAutoUpdate(PluginManifest pluginManifest, bool force, string pluginVersion, SourceType forcedConfig = SourceType.DISABLED, bool forceStable = false)
+        internal enum Action : byte
+        {
+            NONE,
+            RESTART,
+            UPDATE_AND_RESTART,
+        }
+
+        private static readonly GitHub GitHub = new ();
+        private static readonly GitLab GitLab = new ();
+
+        private static ServerManifest ServerManifest { get; set; }
+
+        private static Action DoAutoUpdate(PluginManifest pluginManifest, bool force, string pluginVersion, SourceType forcedConfig = SourceType.DISABLED, bool forceStable = false)
         {
             try
             {
@@ -109,38 +121,37 @@ namespace Mistaken.Updater
 
                     case SourceType.GITLAB:
                     case SourceType.GITHUB:
-                    {
-                        Log.Debug($"[{pluginManifest.PluginName}] Checking for update using {forcedConfig}, Dev: {!forceStable && pluginManifest.Development}", VerboseOutput);
-                        var implementation = GetImplementation(forcedConfig);
-                        Action? result;
-                        if (!forceStable && pluginManifest.Development)
                         {
-                            result = UpdateDevelopment(
-                                implementation,
-                                pluginManifest,
-                                pluginVersion,
-                                force);
-                        }
-                        else
-                        {
-                            result = UpdateStable(
-                                implementation,
-                                pluginManifest,
-                                pluginVersion,
-                                force);
-                        }
+                            Log.Debug($"[{pluginManifest.PluginName}] Checking for update using {forcedConfig}, Dev: {!forceStable && pluginManifest.Development}", VerboseOutput);
+                            var implementation = GetImplementation(forcedConfig);
+                            Action? result;
+                            if (!forceStable && pluginManifest.Development)
+                            {
+                                result = UpdateDevelopment(
+                                    implementation,
+                                    pluginManifest,
+                                    pluginVersion,
+                                    force);
+                            }
+                            else
+                            {
+                                result = UpdateStable(
+                                    implementation,
+                                    pluginManifest,
+                                    pluginVersion,
+                                    force);
+                            }
 
-                        Log.Debug($"[{pluginManifest.PluginName}] Checked for update using {forcedConfig}, Result: {result?.ToString() ?? "CONTINUE"}", VerboseOutput);
-                        if (result.HasValue)
-                            return result.Value;
-                        break;
-                    }
+                            Log.Debug($"[{pluginManifest.PluginName}] Checked for update using {forcedConfig}, Result: {result?.ToString() ?? "CONTINUE"}", VerboseOutput);
+                            if (result.HasValue)
+                                return result.Value;
+                            break;
+                        }
 
                     case SourceType.HTTP:
-                    {
-                        Log.Debug($"[{pluginManifest.PluginName}] Checking for update using HTTP, checking for releases", VerboseOutput);
-                        using (var client = new WebClient())
                         {
+                            Log.Debug($"[{pluginManifest.PluginName}] Checking for update using HTTP, checking for releases", VerboseOutput);
+                            using var client = new WebClient();
                             try
                             {
                                 var manifest =
@@ -172,10 +183,9 @@ namespace Mistaken.Updater
                                 Log.Error(ex.StackTrace);
                                 return Action.NONE;
                             }
-                        }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     default:
                         throw new ArgumentOutOfRangeException(
@@ -201,13 +211,6 @@ namespace Mistaken.Updater
             }
         }
 
-        internal enum Action : byte
-        {
-            NONE,
-            RESTART,
-            UPDATE_AND_RESTART,
-        }
-
         private static void RestartServer()
         {
             IdleMode.PauseIdleMode = true;
@@ -222,7 +225,7 @@ namespace Mistaken.Updater
 
         private static PluginManifest CreatePluginManifest(IPlugin<IConfig> plugin)
         {
-            if (!(plugin is IAutoUpdateablePlugin autoUpdateablePlugin))
+            if (plugin is not IAutoUpdateablePlugin autoUpdateablePlugin)
                 throw new ArgumentException($"Expected {nameof(IAutoUpdateablePlugin)}", nameof(plugin));
 
             Log.Debug($"[{plugin.GetPluginName()}] Creating Plugin Manifest", VerboseOutput);
@@ -237,6 +240,12 @@ namespace Mistaken.Updater
         private static PluginManifest CreatePluginManifestBackwardsCompatible(IPlugin<IAutoUpdatableConfig> plugin)
         {
             Log.Debug($"[{plugin.GetPluginName()}] Creating Plugin Manifest with Backwards Compatibility", VerboseOutput);
+            plugin.Config.AutoUpdateConfig ??= new Dictionary<string, string>()
+            {
+                { "Url", null },
+                { "Type", null },
+            };
+
             var tor = new PluginManifest
             {
                 PluginName = plugin.GetPluginName(),
@@ -318,19 +327,14 @@ namespace Mistaken.Updater
 
         private static IImplementation GetImplementation(SourceType type)
         {
-            switch (type)
+            return type switch
             {
-                case SourceType.GITHUB:
-                    return new GitHub();
-
-                case SourceType.GITLAB:
-                    return new GitLab();
-
-                case SourceType.DISABLED:
-                case SourceType.HTTP:
-                default:
-                    throw new NotImplementedException();
-            }
+                SourceType.GITHUB => GitHub,
+                SourceType.GITLAB => GitLab,
+                SourceType.DISABLED => throw new NotImplementedException(),
+                SourceType.HTTP => throw new NotImplementedException(),
+                _ => throw new NotImplementedException()
+            };
         }
 
         private static Action? UpdateStable(
@@ -383,7 +387,7 @@ namespace Mistaken.Updater
             {
                 var manifest = GetPluginManifest(plugin);
 
-                if (!(manifest is null))
+                if (manifest is not null)
                     continue;
 
                 manifest = CreatePluginManifest(plugin);
@@ -404,14 +408,24 @@ namespace Mistaken.Updater
             var changed = false;
             foreach (var plugin in Loader.Plugins.OfType<IPlugin<IAutoUpdatableConfig>>())
             {
-                var manifest = GetPluginManifest(plugin);
+                try
+                {
+                    var manifest = GetPluginManifest(plugin);
 
-                if (!(manifest is null))
-                    continue;
+                    if (manifest is not null)
+                        continue;
 
-                manifest = CreatePluginManifestBackwardsCompatible(plugin);
-                Log.Info($"[{manifest.PluginName}] Detected new plugin using Backwards Compatibility, adding to manifest");
-                changed = true;
+                    manifest = CreatePluginManifestBackwardsCompatible(plugin);
+                    Log.Info(
+                        $"[{manifest.PluginName}] Detected new plugin using Backwards Compatibility, adding to manifest");
+                    changed = true;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(
+                        $"[{plugin.GetPluginName()}] Exception when adding plugin using Backwards Compatibility:");
+                    Log.Error(ex);
+                }
             }
 
             if (!changed)

@@ -70,7 +70,7 @@ namespace Mistaken.Updater.API.Implementations
             [JsonProperty("assets")]
             public Asset[] Assets { get; set; }
 
-            public Commit Commit => new Commit { ShortId = this.NodeId };
+            public Commit Commit => new() { ShortId = this.NodeId };
 
             [JsonProperty("node_id")]
             public string NodeId { get; set; }
@@ -95,19 +95,17 @@ namespace Mistaken.Updater.API.Implementations
         {
             public static Artifacts Download(IImplementation implementation, PluginManifest pluginManifest)
             {
-                using (var client = new WebClient())
+                using var client = new WebClient();
+                implementation.AddHeaders(client, pluginManifest);
+                string artifactsUrl = pluginManifest.UpdateUrl + "/actions/artifacts";
+                var rawResult = client.DownloadString(artifactsUrl);
+                if (rawResult == string.Empty)
                 {
-                    implementation.AddHeaders(client, pluginManifest);
-                    string artifactsUrl = pluginManifest.UpdateUrl + "/actions/artifacts";
-                    var rawResult = client.DownloadString(artifactsUrl);
-                    if (rawResult == string.Empty)
-                    {
-                        Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {artifactsUrl} returned empty page");
-                        return null;
-                    }
-
-                    return JsonConvert.DeserializeObject<Artifacts>(rawResult);
+                    Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {artifactsUrl} returned empty page");
+                    return null;
                 }
+
+                return JsonConvert.DeserializeObject<Artifacts>(rawResult);
             }
 
             [JsonProperty("artifacts")]
@@ -131,23 +129,21 @@ namespace Mistaken.Updater.API.Implementations
             public void Download(IImplementation implementation, PluginManifest pluginManifest)
             {
                 Log.Debug($"[{pluginManifest.PluginName}] Downloading artifact from " + this.DownloadUrl, AutoUpdater.VerboseOutput);
-                using (var client = new WebClient())
-                {
-                    var extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.extracted");
-                    var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
+                using var client = new WebClient();
+                var extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.extracted");
+                var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
 
-                    implementation.AddHeaders(client, pluginManifest);
-                    client.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
+                implementation.AddHeaders(client, pluginManifest);
+                client.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
 
-                    client.DownloadFile(this.DownloadUrl, path);
+                client.DownloadFile(this.DownloadUrl, path);
 
-                    ZipFile.ExtractToDirectory(path, extractedPath);
-                    File.Delete(path);
+                ZipFile.ExtractToDirectory(path, extractedPath);
+                File.Delete(path);
 
-                    Internal.Utils.MoveFiles(pluginManifest, extractedPath);
+                Internal.Utils.MoveFiles(pluginManifest, extractedPath);
 
-                    Directory.Delete(extractedPath, true);
-                }
+                Directory.Delete(extractedPath, true);
             }
 
             public class WorkflowRun

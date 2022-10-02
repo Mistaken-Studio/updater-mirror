@@ -122,18 +122,16 @@ namespace Mistaken.Updater.API.Implementations
         {
             public static Job[] Download(IImplementation implementation, PluginManifest pluginManifest)
             {
-                using (var client = new WebClient())
-                {
-                    var jobsUrl = pluginManifest.UpdateUrl + "/jobs?scope=success";
-                    implementation.AddHeaders(client, pluginManifest);
-                    Log.Debug($"[{pluginManifest.PluginName}] Downloading job list from {jobsUrl}", AutoUpdater.VerboseOutput);
-                    var rawResult = client.DownloadString(jobsUrl);
-                    if (rawResult != string.Empty)
-                        return JsonConvert.DeserializeObject<Job[]>(rawResult);
+                using var client = new WebClient();
+                var jobsUrl = pluginManifest.UpdateUrl + "/jobs?scope=success";
+                implementation.AddHeaders(client, pluginManifest);
+                Log.Debug($"[{pluginManifest.PluginName}] Downloading job list from {jobsUrl}", AutoUpdater.VerboseOutput);
+                var rawResult = client.DownloadString(jobsUrl);
+                if (rawResult != string.Empty)
+                    return JsonConvert.DeserializeObject<Job[]>(rawResult);
 
-                    Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {jobsUrl} returned empty page");
-                    return null;
-                }
+                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: {jobsUrl} returned empty page");
+                return null;
             }
 
             [JsonProperty("id")]
@@ -147,26 +145,24 @@ namespace Mistaken.Updater.API.Implementations
 
             public void DownloadArtifacts(IImplementation implementation, PluginManifest pluginManifest)
             {
-                using (var client = new WebClient())
-                {
-                    var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
-                    var extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.extracted");
+                using var client = new WebClient();
+                var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
+                var extractedPath = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.extracted");
 
-                    var artifactUrl = pluginManifest.UpdateUrl + $"/jobs/{this.Id}/artifacts";
+                var artifactUrl = pluginManifest.UpdateUrl + $"/jobs/{this.Id}/artifacts";
 
-                    implementation.AddHeaders(client, pluginManifest);
+                implementation.AddHeaders(client, pluginManifest);
 
-                    Log.Debug($"[{pluginManifest.PluginName}] Downloading artifact from " + artifactUrl, AutoUpdater.VerboseOutput);
+                Log.Debug($"[{pluginManifest.PluginName}] Downloading artifact from " + artifactUrl, AutoUpdater.VerboseOutput);
 
-                    client.DownloadFile(artifactUrl, path);
+                client.DownloadFile(artifactUrl, path);
 
-                    ZipFile.ExtractToDirectory(path, extractedPath);
-                    File.Delete(path);
+                ZipFile.ExtractToDirectory(path, extractedPath);
+                File.Delete(path);
 
-                    Internal.Utils.MoveFiles(pluginManifest, extractedPath);
+                Internal.Utils.MoveFiles(pluginManifest, extractedPath);
 
-                    Directory.Delete(extractedPath, true);
-                }
+                Directory.Delete(extractedPath, true);
             }
         }
     }

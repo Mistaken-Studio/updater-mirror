@@ -32,7 +32,7 @@ namespace Mistaken.Updater.Internal
             if (!sender.CheckPermission(PlayerPermissions.ServerConsoleCommands, out response))
                 return false;
 
-            if (Updater.AutoUpdater.DoAutoUpdates())
+            if (AutoUpdater.DoAutoUpdates())
             {
                 Mirror.NetworkServer.SendToAll(new RoundRestartMessage(
                     RoundRestartType.FullRestart,
