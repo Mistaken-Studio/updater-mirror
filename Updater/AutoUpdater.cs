@@ -408,14 +408,24 @@ namespace Mistaken.Updater
             var changed = false;
             foreach (var plugin in Loader.Plugins.OfType<IPlugin<IAutoUpdatableConfig>>())
             {
-                var manifest = GetPluginManifest(plugin);
+                try
+                {
+                    var manifest = GetPluginManifest(plugin);
 
-                if (manifest is not null)
-                    continue;
+                    if (manifest is not null)
+                        continue;
 
-                manifest = CreatePluginManifestBackwardsCompatible(plugin);
-                Log.Info($"[{manifest.PluginName}] Detected new plugin using Backwards Compatibility, adding to manifest");
-                changed = true;
+                    manifest = CreatePluginManifestBackwardsCompatible(plugin);
+                    Log.Info(
+                        $"[{manifest.PluginName}] Detected new plugin using Backwards Compatibility, adding to manifest");
+                    changed = true;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(
+                        $"[{plugin.GetPluginName()}] Exception when adding plugin using Backwards Compatibility:");
+                    Log.Error(ex);
+                }
             }
 
             if (!changed)
