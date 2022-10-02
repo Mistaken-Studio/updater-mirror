@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AutoUpdater.cs" company="Mistaken">
+// <copyright file="AutoUpdaterPlugin.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -13,7 +13,7 @@ using Mistaken.Updater.API.Config;
 namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc cref="IPlugin{TConfig}"/>
-    internal class AutoUpdater : Plugin<AutoUpdaterPluginConfig>, IAutoUpdateablePlugin
+    internal class AutoUpdaterPlugin : Plugin<AutoUpdaterPluginConfig>, IAutoUpdateablePlugin
     {
         /// <inheritdoc/>
         public override string Name => "Updater";
@@ -46,7 +46,7 @@ namespace Mistaken.Updater.Internal
 
             MEC.Timing.CallDelayed(60, () => Exiled.Events.Handlers.Server.RestartingRound += Server_RestartingRound);
 
-            Updater.AutoUpdater.Initialize();
+            AutoUpdater.Initialize();
         }
 
         /// <inheritdoc/>
@@ -56,7 +56,7 @@ namespace Mistaken.Updater.Internal
             Exiled.Events.Handlers.Server.WaitingForPlayers -= Server_WaitingForPlayers;
         }
 
-        internal static AutoUpdater Instance { get; private set; }
+        internal static AutoUpdaterPlugin Instance { get; private set; }
 
         private static bool ignoreRestartingRound;
 
@@ -70,7 +70,7 @@ namespace Mistaken.Updater.Internal
 
             MEC.Timing.CallDelayed(5f, () =>
             {
-                if (Updater.AutoUpdater.DoAutoUpdates())
+                if (AutoUpdater.DoAutoUpdates())
                     ignoreRestartingRound = true;
             });
         }

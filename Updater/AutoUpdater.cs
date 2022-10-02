@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -43,7 +44,7 @@ namespace Mistaken.Updater
             return ServerManifest.Plugins.TryGetValue(name, out var manifest) ? manifest : null;
         }
 
-        internal static bool VerboseOutput => Internal.AutoUpdater.Instance.Config.VerboseOutput;
+        internal static bool VerboseOutput => AutoUpdaterPlugin.Instance.Config.VerboseOutput;
 
         internal static void Initialize()
         {
@@ -239,6 +240,12 @@ namespace Mistaken.Updater
         private static PluginManifest CreatePluginManifestBackwardsCompatible(IPlugin<IAutoUpdatableConfig> plugin)
         {
             Log.Debug($"[{plugin.GetPluginName()}] Creating Plugin Manifest with Backwards Compatibility", VerboseOutput);
+            plugin.Config.AutoUpdateConfig ??= new Dictionary<string, string>()
+            {
+                { "Url", null },
+                { "Type", null },
+            };
+
             var tor = new PluginManifest
             {
                 PluginName = plugin.GetPluginName(),

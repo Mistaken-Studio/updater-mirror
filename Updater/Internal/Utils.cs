@@ -26,7 +26,7 @@ namespace Mistaken.Updater.Internal
 
             var releaseUrl = pluginManifest.UpdateUrl + implementation.UrlSuffix;
 
-            Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", Updater.AutoUpdater.VerboseOutput);
+            Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", AutoUpdater.VerboseOutput);
             var rawResult = client.DownloadString(releaseUrl);
 
             if (rawResult != string.Empty)
@@ -60,7 +60,7 @@ namespace Mistaken.Updater.Internal
             IAsset asset,
             PluginManifest pluginManifest)
         {
-            Log.Debug($"[{pluginManifest.PluginName}] Downloading asset from " + asset.Url, Updater.AutoUpdater.VerboseOutput);
+            Log.Debug($"[{pluginManifest.PluginName}] Downloading asset from " + asset.Url, AutoUpdater.VerboseOutput);
             using var client = new WebClient();
             implementation.AddHeaders(client, pluginManifest);
 
@@ -86,18 +86,18 @@ namespace Mistaken.Updater.Internal
             File.Copy(path, outputPath, true);
             File.Delete(path);
 
-            Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, Updater.AutoUpdater.VerboseOutput);
+            Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, AutoUpdater.VerboseOutput);
         }
 
         internal static void MoveFiles(PluginManifest pluginManifest, string extractedPath)
         {
             while (true)
             {
-                Log.Debug($"[{pluginManifest.PluginName}] Scanning {extractedPath} for files", Updater.AutoUpdater.VerboseOutput);
+                Log.Debug($"[{pluginManifest.PluginName}] Scanning {extractedPath} for files", AutoUpdater.VerboseOutput);
                 var files = Directory.GetFiles(extractedPath, "*.dll");
                 if (files.Length != 0)
                 {
-                    Log.Debug($"[{pluginManifest.PluginName}] Found files in {extractedPath}", Updater.AutoUpdater.VerboseOutput);
+                    Log.Debug($"[{pluginManifest.PluginName}] Found files in {extractedPath}", AutoUpdater.VerboseOutput);
                     foreach (var file in files)
                     {
                         string name = Path.GetFileName(file);
@@ -110,7 +110,7 @@ namespace Mistaken.Updater.Internal
                         else
                             targetPath = Path.Combine(Paths.Plugins, name);
 
-                        Log.Debug($"[{pluginManifest.PluginName}] Copping {file} to {targetPath}", Updater.AutoUpdater.VerboseOutput);
+                        Log.Debug($"[{pluginManifest.PluginName}] Copping {file} to {targetPath}", AutoUpdater.VerboseOutput);
                         File.Copy(file, targetPath, true);
                     }
 
