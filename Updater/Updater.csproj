@@ -46,11 +46,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression.FileSystem" />
-    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
+    <Reference Include="System.IO.Compression.ZipFile" HintPath="..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll"/>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -59,20 +55,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\Abstract\IAsset.cs" />
+    <Compile Include="API\Abstract\ICommit.cs" />
+    <Compile Include="API\Abstract\IImplementation.cs" />
+    <Compile Include="API\Abstract\IRelease.cs" />
+    <Compile Include="Internal\Utils.cs" />
     <Compile Include="API\Manifest.cs" />
-    <Compile Include="Config\AutoUpdateConfig.cs" />
+    <Compile Include="AutoUpdater.cs" />
+    <Compile Include="API\Config\AutoUpdateConfig.cs" />
+    <Compile Include="API\PluginManifest.cs" />
+    <Compile Include="Internal\ServerManifest.cs" />
     <Compile Include="Internal\AutoUpdater.cs" />
     <Compile Include="Internal\AutoUpdaterPluginConfig.cs" />
-    <Compile Include="Config\AutoUpdateType.cs" />
+    <Compile Include="API\Config\SourceType.cs" />
+    <Compile Include="API\Config\Obsolete\AutoUpdateType.cs" />
     <Compile Include="Internal\AutoUpdateCommand.cs" />
-    <Compile Include="API\GitHub.cs" />
-    <Compile Include="API\GitLab.cs" />
-    <Compile Include="Config\IAutoUpdatableConfig.cs" />
+    <Compile Include="API\Implementations\GitHub.cs" />
+    <Compile Include="API\Implementations\GitLab.cs" />
+    <Compile Include="API\Config\IAutoUpdateablePlugin.cs" />
+    <Compile Include="Internal\Extensions.cs" />
+    <Compile Include="API\Config\Obsolete\IAutoUpdatableConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="app.config" />
     <None Include="packages.config" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
@@ -80,9 +86,14 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Manifest\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(MISTAKEN_REFERENCES)\$(TargetFileName)
-copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_REFERENCES)\$(TargetName).xml</PostBuildEvent>
+    <PostBuildEvent>
+      copy $(TargetPath) $(MISTAKEN_REFERENCES)\$(TargetFileName)
+      copy $(TargetDir)\$(TargetName).xml $(MISTAKEN_REFERENCES)\$(TargetName).xml
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>

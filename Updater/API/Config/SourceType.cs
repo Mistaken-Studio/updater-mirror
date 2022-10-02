@@ -1,15 +1,15 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="AutoUpdateType.cs" company="Mistaken">
+// <copyright file="SourceType.cs" company="Mistaken">
 // Copyright (c) Mistaken. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Mistaken.Updater.Config
+namespace Mistaken.Updater.API.Config
 {
     /// <summary>
-    /// Auto Update Type.
+    /// Source Type.
     /// </summary>
-    public enum AutoUpdateType
+    public enum SourceType
     {
         /// <summary>
         /// Auto update is disabled
@@ -25,16 +25,6 @@ namespace Mistaken.Updater.Config
         /// Download update from GitHub
         /// </summary>
         GITHUB,
-
-        /// <summary>
-        /// Download update from GitLab using artifacts
-        /// </summary>
-        GITLAB_DEVELOPMENT,
-
-        /// <summary>
-        /// Download update from GitHub using artifacts
-        /// </summary>
-        GITHUB_DEVELOPMENT,
 
         /// <summary>
         /// Download update from HTTP Server
