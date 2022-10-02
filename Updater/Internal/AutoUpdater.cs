@@ -25,13 +25,13 @@ namespace Mistaken.Updater.Internal
         public override PluginPriority Priority => PluginPriority.Last;
 
         /// <inheritdoc/>
-        public override Version RequiredExiledVersion => new Version(5, 2, 0);
+        public override Version RequiredExiledVersion => new(5, 2, 0);
 
         /// <inheritdoc/>
         public override string Prefix => "MUPDATER";
 
         /// <inheritdoc/>
-        public AutoUpdateConfig AutoUpdateConfig => new AutoUpdateConfig
+        public AutoUpdateConfig AutoUpdateConfig => new()
         {
             Type = SourceType.GITLAB,
             Url = "https://git.mistaken.pl/api/v4/projects/8",

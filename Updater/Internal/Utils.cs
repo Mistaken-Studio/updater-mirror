@@ -21,40 +21,38 @@ namespace Mistaken.Updater.Internal
             IImplementation implementation,
             PluginManifest pluginManifest)
         {
-            using (var client = new WebClient())
+            using var client = new WebClient();
+            implementation.AddHeaders(client, pluginManifest);
+
+            var releaseUrl = pluginManifest.UpdateUrl + implementation.UrlSuffix;
+
+            Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", Updater.AutoUpdater.VerboseOutput);
+            var rawResult = client.DownloadString(releaseUrl);
+
+            if (rawResult != string.Empty)
             {
-                implementation.AddHeaders(client, pluginManifest);
-
-                var releaseUrl = pluginManifest.UpdateUrl + implementation.UrlSuffix;
-
-                Log.Debug($"[{pluginManifest.PluginName}] Downloading release list from {releaseUrl}", Updater.AutoUpdater.VerboseOutput);
-                var rawResult = client.DownloadString(releaseUrl);
-
-                if (rawResult != string.Empty)
+                if (implementation is GitLab)
                 {
-                    if (implementation is GitLab)
+                    try
                     {
-                        try
-                        {
-                            return (IRelease<IAsset, ICommit>)((Array)JsonConvert.DeserializeObject(
-                                rawResult,
-                                implementation.ReleaseType))?.GetValue(0);
-                        }
-                        catch (InvalidCastException ex)
-                        {
-                            Log.Error($"Target: IRelease<IAsset, ICommit>[], Result: {JsonConvert.DeserializeObject(rawResult, implementation.ReleaseType)?.GetType().Name ?? "NULL"}");
-                            Log.Error(ex);
-                        }
+                        return (IRelease<IAsset, ICommit>)((Array)JsonConvert.DeserializeObject(
+                            rawResult,
+                            implementation.ReleaseType))?.GetValue(0);
                     }
-
-                    return (IRelease<IAsset, ICommit>)JsonConvert.DeserializeObject(
-                        rawResult,
-                        implementation.ReleaseType);
+                    catch (InvalidCastException ex)
+                    {
+                        Log.Error($"Target: IRelease<IAsset, ICommit>[], Result: {JsonConvert.DeserializeObject(rawResult, implementation.ReleaseType)?.GetType().Name ?? "NULL"}");
+                        Log.Error(ex);
+                    }
                 }
 
-                Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: AutoUpdate URL returned empty page");
-                return null;
+                return (IRelease<IAsset, ICommit>)JsonConvert.DeserializeObject(
+                    rawResult,
+                    implementation.ReleaseType);
             }
+
+            Log.Error($"[{pluginManifest.PluginName}] AutoUpdate Failed: AutoUpdate URL returned empty page");
+            return null;
         }
 
         public static void DownloadAsset(
@@ -63,34 +61,32 @@ namespace Mistaken.Updater.Internal
             PluginManifest pluginManifest)
         {
             Log.Debug($"[{pluginManifest.PluginName}] Downloading asset from " + asset.Url, Updater.AutoUpdater.VerboseOutput);
-            using (var client = new WebClient())
+            using var client = new WebClient();
+            implementation.AddHeaders(client, pluginManifest);
+
+            client.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
+
+            var name = asset.Name;
+            string outputPath;
+            string path;
+
+            if (name.StartsWith("Dependency-"))
             {
-                implementation.AddHeaders(client, pluginManifest);
-
-                client.Headers.Add(HttpRequestHeader.Accept, "application/octet-stream");
-
-                var name = asset.Name;
-                string outputPath;
-                string path;
-
-                if (name.StartsWith("Dependency-"))
-                {
-                    name = name.Substring(12);
-                    path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                    outputPath = Path.Combine(Paths.Dependencies, name);
-                }
-                else
-                {
-                    outputPath = Path.Combine(Paths.Plugins, name);
-                    path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
-                }
-
-                client.DownloadFile(asset.Url, path);
-                File.Copy(path, outputPath, true);
-                File.Delete(path);
-
-                Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, Updater.AutoUpdater.VerboseOutput);
+                name = name.Substring(12);
+                path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
+                outputPath = Path.Combine(Paths.Dependencies, name);
             }
+            else
+            {
+                outputPath = Path.Combine(Paths.Plugins, name);
+                path = Path.Combine(Paths.Plugins, "AutoUpdater", name);
+            }
+
+            client.DownloadFile(asset.Url, path);
+            File.Copy(path, outputPath, true);
+            File.Delete(path);
+
+            Log.Debug($"[{pluginManifest.PluginName}] Downloaded asset from " + asset.Url + " to " + outputPath, Updater.AutoUpdater.VerboseOutput);
         }
 
         internal static void MoveFiles(PluginManifest pluginManifest, string extractedPath)
