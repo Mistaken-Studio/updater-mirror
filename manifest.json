@@ -1,0 +1,16 @@
+{
+  "Name": "ERROR",
+  "Author": "ERROR",
+  "LatestVersion": "3.0.1",
+  "BuildDate": "2022-10-08 21:32:33",
+  "BuildId": "3.0.1-master-00000000",
+  "FileName": "Mistaken.Updater.dll",
+  "UpdateUrl": "https://git.mistaken.pl/api/v4/projects/8/packages/generic/plugins/3.0.1/Mistaken.Updater.dll",
+  "Dependencies": [
+    {
+      "FileName": "Newtonsoft.Json.dll",
+      "IsPlugin": false,
+      "DownloadUrl": "https://git.mistaken.pl/api/v4/projects/14/repository/files/Newtonsoft.Json.dll/raw?ref=master"
+    }
+  ]
+}
