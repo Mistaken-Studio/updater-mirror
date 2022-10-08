@@ -5,21 +5,23 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Exiled.API.Interfaces;
+using JetBrains.Annotations;
 using Mistaken.Updater.API.Abstract;
 using Mistaken.Updater.API.Config;
+using Mistaken.Updater.API.Manifests;
 using Mistaken.Updater.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-// ReSharper disable MemberCanBePrivate.Global
-// ReSharper disable UnusedAutoPropertyAccessor.Global
-// ReSharper disable UnusedAutoPropertyAccessor.Local
 namespace Mistaken.Updater.API
 {
     /// <summary>
     /// Plugin Manifest.
     /// </summary>
+    [PublicAPI]
     public class PluginManifest
     {
         /// <summary>
@@ -43,6 +45,11 @@ namespace Mistaken.Updater.API
         public DateTime? UpdateTime { get; set; }
 
         /// <summary>
+        /// Gets or sets file Name.
+        /// </summary>
+        public string FileName { get; set; }
+
+        /// <summary>
         /// Gets or sets source Type.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
@@ -63,14 +70,39 @@ namespace Mistaken.Updater.API
         /// </summary>
         public string Token { get; set; }
 
+        /// <summary>
+        /// Gets or sets token.
+        /// </summary>
+        public List<PluginDependency> Dependencies { get; set; }
+
         internal PluginManifest(IAutoUpdateablePlugin p)
         {
             var plugin = p as IPlugin<IConfig>;
             var config = p.AutoUpdateConfig;
 
             this.PluginName = plugin.GetPluginName();
+            this.FileName = plugin!.Assembly.GetName().Name + ".dll";
             this.SourceType = config.Type;
             this.UpdateUrl = config.Url;
+        }
+
+        internal PluginManifest(MistakenManifest mistakenManifest)
+        {
+            this.PluginName = mistakenManifest.PluginName;
+            this.CurrentBuildId = mistakenManifest.BuildId;
+            this.CurrentVersion = mistakenManifest.Version;
+            this.FileName = mistakenManifest.FileName;
+            this.SourceType = SourceType.GITLAB;
+            this.UpdateUrl = mistakenManifest.UpdateUrl;
+            this.Dependencies = new List<PluginDependency>();
+            this.Dependencies.AddRange(
+                mistakenManifest.Dependencies.Select(
+                    x => new PluginDependency
+                    {
+                        DownloadUrl = x.DownloadUrl,
+                        FileName = x.FileName,
+                        IsPlugin = x.IsPlugin,
+                    }));
         }
 
         internal PluginManifest()
@@ -81,6 +113,13 @@ namespace Mistaken.Updater.API
         {
             this.CurrentVersion = manifest.Version;
             this.CurrentBuildId = manifest.Version;
+            this.UpdateTime = DateTime.Now;
+        }
+
+        internal void UpdatePlugin(MistakenManifest manifest)
+        {
+            this.CurrentVersion = manifest.Version;
+            this.CurrentBuildId = manifest.BuildId;
             this.UpdateTime = DateTime.Now;
         }
 

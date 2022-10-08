@@ -8,11 +8,13 @@ using System;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Interfaces;
+using JetBrains.Annotations;
 using Mistaken.Updater.API.Config;
 
 namespace Mistaken.Updater.Internal
 {
     /// <inheritdoc cref="IPlugin{TConfig}"/>
+    [UsedImplicitly]
     internal class AutoUpdaterPlugin : Plugin<AutoUpdaterPluginConfig>, IAutoUpdateablePlugin
     {
         /// <inheritdoc/>
@@ -47,6 +49,8 @@ namespace Mistaken.Updater.Internal
             MEC.Timing.CallDelayed(60, () => Exiled.Events.Handlers.Server.RestartingRound += Server_RestartingRound);
 
             AutoUpdater.Initialize();
+
+            MistakenUpdater.SetupPaths();
         }
 
         /// <inheritdoc/>
