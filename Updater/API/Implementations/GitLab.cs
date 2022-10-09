@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using Exiled.API.Features;
 using Mistaken.Updater.API.Abstract;
+using Mistaken.Updater.API.Manifests;
 using Newtonsoft.Json;
 
 namespace Mistaken.Updater.API.Implementations
@@ -47,9 +48,12 @@ namespace Mistaken.Updater.API.Implementations
                     return AutoUpdater.Action.NONE;
                 }
 
-                job.DownloadArtifacts(this, pluginManifest);
+                job.DownloadArtifacts(this, pluginManifest, out MistakenManifest? manifest);
 
-                pluginManifest.UpdatePlugin("0.0.0", job.Commit.ShortId, job.Commit.LastPipelineField?.Ref ?? "unknown");
+                if(manifest.HasValue)
+                    pluginManifest.UpdatePlugin(manifest.Value);
+                else
+                    pluginManifest.UpdatePlugin("0.0.0", job.Commit.ShortId, job.Commit.LastPipelineField?.Ref ?? "unknown");
                 return null;
             }
             catch (WebException ex)
@@ -143,7 +147,7 @@ namespace Mistaken.Updater.API.Implementations
             [JsonProperty("commit")]
             public Commit Commit { get; set; }
 
-            public void DownloadArtifacts(IImplementation implementation, PluginManifest pluginManifest)
+            public void DownloadArtifacts(IImplementation implementation, PluginManifest pluginManifest, out MistakenManifest? manifest)
             {
                 using var client = new WebClient();
                 var path = Path.Combine(Paths.Plugins, "AutoUpdater", $"{pluginManifest.PluginName.Replace('/', '_')}.artifacts.zip");
@@ -159,6 +163,8 @@ namespace Mistaken.Updater.API.Implementations
 
                 ZipFile.ExtractToDirectory(path, extractedPath);
                 File.Delete(path);
+
+                manifest = Internal.Utils.GetMistakenManifest(pluginManifest, extractedPath);
 
                 Internal.Utils.MoveFiles(pluginManifest, extractedPath);
 

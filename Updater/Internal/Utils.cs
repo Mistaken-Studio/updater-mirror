@@ -6,11 +6,13 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using Exiled.API.Features;
 using Mistaken.Updater.API;
 using Mistaken.Updater.API.Abstract;
 using Mistaken.Updater.API.Implementations;
+using Mistaken.Updater.API.Manifests;
 using Newtonsoft.Json;
 
 namespace Mistaken.Updater.Internal
@@ -126,6 +128,23 @@ namespace Mistaken.Updater.Internal
 
                 extractedPath = directories[0];
             }
+        }
+
+        internal static MistakenManifest? GetMistakenManifest(PluginManifest pluginManifest, string extractedPath)
+        {
+            Log.Debug($"[{pluginManifest.PluginName}] Scanning {extractedPath} for files", AutoUpdater.VerboseOutput);
+            var files = Directory.GetFiles(extractedPath, "manifest.json", SearchOption.AllDirectories);
+            if (files.Length == 0)
+                return null;
+
+            Log.Debug(
+                $"[{pluginManifest.PluginName}] Found manifest file: {files.First()}",
+                AutoUpdater.VerboseOutput);
+            var manifest =
+                JsonConvert.DeserializeObject<MistakenManifest>(
+                    File.ReadAllText(files.First()));
+
+            return manifest;
         }
     }
 }

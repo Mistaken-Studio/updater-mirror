@@ -73,6 +73,9 @@ csharp_style_prefer_not_pattern = true:suggestion
 csharp_style_prefer_extended_property_pattern = true:suggestion
 dotnet_diagnostic.SA1000.severity = silent
 
+# SA1134: Attributes should not share line
+dotnet_diagnostic.SA1134.severity = silent
+
 [*.vb]
 #### Style nazewnictwa ####
 

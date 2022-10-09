@@ -14,14 +14,13 @@ namespace Mistaken.Updater.Internal
 {
     internal class ServerManifest
     {
-        [JsonProperty("Plugins")]
-        internal Dictionary<string, PluginManifest> Plugins { get; private set; } = new();
+        [JsonProperty("Plugins")] public Dictionary<string, PluginManifest> Plugins { get; private set; } = new();
 
-        [JsonProperty("LastUpdateCheck")]
-        internal DateTime? LastUpdateCheck { get; set; }
+        [JsonProperty("Dependency")] public Dictionary<string, Dependency> Dependency { get; private set; } = new();
 
-        [JsonProperty("Tokens")]
-        internal Dictionary<string, string> Tokens { get; set; } = new();
+        [JsonProperty("LastUpdateCheck")] public DateTime? LastUpdateCheck { get; set; }
+
+        [JsonProperty("Tokens")] public Dictionary<string, string> Tokens { get; set; } = new();
 
         internal void ApplyTokens()
         {

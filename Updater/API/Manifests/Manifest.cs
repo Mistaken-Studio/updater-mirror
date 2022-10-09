@@ -6,14 +6,12 @@
 
 using Newtonsoft.Json;
 
-namespace Mistaken.Updater.API
+namespace Mistaken.Updater.API.Manifests
 {
-    internal struct Manifest
+    internal struct Manifest : IManifest
     {
-        [JsonProperty("version")]
-        public string Version { get; set; }
+        [JsonProperty("plugin_name")] public string PluginName { get; set; }
 
-        [JsonProperty("plugin_name")]
-        public string PluginName { get; set; }
+        [JsonProperty("version")] public string Version { get; set; }
     }
 }
