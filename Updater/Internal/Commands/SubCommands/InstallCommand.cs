@@ -5,7 +5,9 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Threading.Tasks;
 using CommandSystem;
+using Exiled.API.Features;
 using JetBrains.Annotations;
 
 namespace Mistaken.Updater.Internal.Commands.SubCommands
@@ -32,12 +34,15 @@ namespace Mistaken.Updater.Internal.Commands.SubCommands
             if (arguments.Count > 1)
                 token = arguments.Array[arguments.Offset + 1];
 
-            response = AutoUpdater.InstallPluginFromManifest(downloadUrl, token);
+            Task.Run(
+                async () =>
+                {
+                    var (result, message) = await AutoUpdater.InstallPluginFromManifest(downloadUrl, token);
 
-            if (response is not null)
-                return false;
+                    Log.Info($"[{result}] {message}");
+                });
 
-            response = "Downloaded successfully";
+            response = "Downloading ...";
             return true;
         }
     }

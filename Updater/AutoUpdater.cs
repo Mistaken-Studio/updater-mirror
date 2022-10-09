@@ -91,18 +91,16 @@ namespace Mistaken.Updater
             }
         }
 
-        [CanBeNull]
-        internal static string InstallPluginFromManifest(string manifestUrl, string token = null)
+        internal static async Task<(MistakenUpdater.FailCodes result, string message)> InstallPluginFromManifest(string manifestUrl, string token = null)
         {
-            var (result, message) = MistakenUpdater.InstallPlugin(manifestUrl, token).GetAwaiter().GetResult();
-            return result == MistakenUpdater.FailCodes.SUCCESS ? null : $"[{result}] {message}";
+            var (result, message) = await MistakenUpdater.InstallPlugin(manifestUrl, token);
+            return (result, $"[{result}] {message}");
         }
 
-        internal static bool UninstallPlugin(string pluginName, out string message)
+        internal static async Task<(MistakenUpdater.FailCodes result, string message)> UninstallPlugin(string pluginName)
         {
-            var (result, msg) = MistakenUpdater.UninstallPlugin(pluginName).GetAwaiter().GetResult();
-            message = $"[{result}] {msg}";
-            return result == MistakenUpdater.FailCodes.SUCCESS;
+            var (result, message) = await MistakenUpdater.UninstallPlugin(pluginName);
+            return (result, $"[{result}] {message}");
         }
 
         internal static void RestartServer()

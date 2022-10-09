@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Exiled.API.Features;
 using Mistaken.Updater.API;
@@ -101,6 +102,7 @@ namespace Mistaken.Updater
             catch (Exception ex)
             {
                 Log.Error(ex);
+                Revert();
                 return (FailCodes.UNEXPECTED_EXCEPTION, ex.ToString());
             }
         }
@@ -155,6 +157,7 @@ namespace Mistaken.Updater
             catch (Exception ex)
             {
                 Log.Error(ex);
+                Revert();
                 return (FailCodes.UNEXPECTED_EXCEPTION, ex.ToString());
             }
         }
@@ -203,17 +206,41 @@ namespace Mistaken.Updater
 
         internal static async Task<ServerManifest> LoadManifest()
         {
-            while (lockEnabled)
-                await Task.Delay(10);
+            var cancellationTokenSource = new CancellationTokenSource(15 * 1000);
 
-            return JsonConvert.DeserializeObject<ServerManifest>(
+            try
+            {
+                while (lockEnabled)
+                    await Task.Delay(10, cancellationTokenSource.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Detected problem with lock");
+            }
+
+            var tor = JsonConvert.DeserializeObject<ServerManifest>(
                 File.ReadAllText(Path.Combine(updaterPath, "manifest.json")));
+
+            tor.ApplyTokens();
+
+            return tor;
         }
 
         internal static async Task SaveManifest(ServerManifest manifest)
         {
-            while (lockEnabled)
-                await Task.Delay(10);
+            var cancellationTokenSource = new CancellationTokenSource(15 * 1000);
+
+            try
+            {
+                while (lockEnabled)
+                    await Task.Delay(10, cancellationTokenSource.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Detected problem with lock");
+            }
+
+            manifest.UnApplyTokens();
 
             File.WriteAllText(
                 Path.Combine(updaterPath, "manifest.json"),
@@ -250,6 +277,12 @@ namespace Mistaken.Updater
 
             foreach (var value in manifest.Plugins.Values)
             {
+                if (value.Dependencies is null)
+                {
+                    Log.Error($"Malformed config, plugin({value.PluginName}) dependency is null");
+                    continue;
+                }
+
                 foreach (var pluginDependency in value.Dependencies
                              .Where(pluginDependency => !pluginDependency.IsPlugin))
                 {
@@ -361,6 +394,7 @@ namespace Mistaken.Updater
                 serverManifest,
                 client,
                 pluginManifest,
+                downloadUrl,
                 token,
                 plugins,
                 dependencies);
@@ -370,6 +404,7 @@ namespace Mistaken.Updater
             ServerManifest serverManifest,
             HttpClient client,
             MistakenManifest pluginManifest,
+            string manifestDownloadUrl,
             string token,
             ConcurrentBag<string> plugins,
             ConcurrentBag<string> dependencies)
@@ -394,7 +429,7 @@ namespace Mistaken.Updater
                     else
                     {
                         // ToDo: Rethink this?
-                        installedManifest.UpdateUrl = pluginManifest.UpdateUrl;
+                        installedManifest.UpdateUrl = manifestDownloadUrl;
                         installedManifest.Token = token;
                     }
                 }
@@ -402,7 +437,13 @@ namespace Mistaken.Updater
                 // - If false then continue
                 else
                 {
-                    serverManifest.Plugins.Add(pluginManifest.PluginName, new PluginManifest(pluginManifest));
+                    serverManifest.Plugins.Add(
+                        pluginManifest.PluginName,
+                        new PluginManifest(pluginManifest)
+                        {
+                            Token = token,
+                            UpdateUrl = manifestDownloadUrl,
+                        });
                 }
 
                 // Download assembly to tmp
@@ -445,7 +486,7 @@ namespace Mistaken.Updater
                             plugins,
                             dependencies);
 
-                        if (result != FailCodes.SUCCESS)
+                        if (result != FailCodes.SUCCESS && result != FailCodes.ALREADY_INSTALLED)
                         {
                             return (FailCodes.FAILED_TO_INSTALL_DEPENDENCY,
                                 $"[{dependency.FileName}] [{result}] {message}");
@@ -464,7 +505,7 @@ namespace Mistaken.Updater
                             dependency.FileName,
                             dependencies);
 
-                        if (result != FailCodes.SUCCESS)
+                        if (result != FailCodes.SUCCESS && result != FailCodes.ALREADY_INSTALLED)
                         {
                             return (FailCodes.FAILED_TO_INSTALL_DEPENDENCY,
                                 $"[{dependency.FileName}] [{result}] {message}");
